@@ -159,11 +159,26 @@
     .mode-button.selected { border-color: var(--amber); background: rgba(226,173,88,.12); color: var(--amber); }
     .lobby-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .lobby-actions .primary { width: 100%; min-width: 0; }
+    .lobby-actions[hidden], .mode-grid[hidden] { display: none; }
     .secondary { min-height: 39px; padding: 8px; font-size: 8px; letter-spacing: .07em; }
     .download-link { display: flex; grid-column: 1 / -1; min-height: 39px; align-items: center; justify-content: center; padding: 8px; border: 1px solid rgba(226,173,88,.42); background: rgba(226,173,88,.08); color: var(--amber); font-size: 8px; letter-spacing: .08em; text-decoration: none; }
     .download-link:hover { background: rgba(226,173,88,.16); }
     .lobby-code { display: flex; gap: 7px; margin-top: 9px; }
     .lobby-code[hidden] { display: none; }
+    .private-setup { margin-top: 14px; padding: 14px; border: 1px solid rgba(226,173,88,.28); background: rgba(12,15,14,.62); }
+    .private-setup[hidden] { display: none; }
+    .private-setup-title { margin-bottom: 10px; color: var(--paper); font: 700 13px "Barlow Condensed",sans-serif; letter-spacing: .12em; }
+    .private-mode-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+    .private-mode { min-height: 44px; border: 1px solid rgba(255,255,255,.17); background: rgba(255,255,255,.035); color: #bcbdb6; font-size: 8px; letter-spacing: .08em; cursor: pointer; }
+    .private-mode strong { display: block; margin-bottom: 2px; color: var(--paper); font: 700 14px "Barlow Condensed",sans-serif; }
+    .private-mode.selected { border-color: var(--amber); background: rgba(226,173,88,.12); color: var(--amber); }
+    .private-code-label { margin: 14px 0 6px; color: var(--muted); font-size: 8px; letter-spacing: .16em; }
+    .private-code-row { display: flex; gap: 7px; align-items: stretch; }
+    .private-code-value { display: grid; flex: 1; min-height: 42px; place-items: center; border: 1px dashed rgba(226,173,88,.42); background: rgba(0,0,0,.3); color: var(--amber); font: 700 20px "DM Mono",monospace; letter-spacing: .2em; user-select: all; }
+    .private-code-row .secondary { min-width: 68px; }
+    .private-setup-note { margin: 9px 0 12px; color: #92968f; font-size: 8px; line-height: 1.7; }
+    .private-setup-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .private-setup-actions .primary, .private-setup-actions .secondary { width: 100%; min-width: 0; }
     .lobby-code input { min-width: 0; flex: 1; padding: 9px; border: 1px solid rgba(255,255,255,.17); outline: none; background: rgba(0,0,0,.38); color: var(--paper); font: 10px "DM Mono",monospace; letter-spacing: .12em; text-transform: uppercase; }
     .lobby-code input:focus { border-color: var(--amber); }
     .lobby-note { margin: 12px auto 0; color: #797d76; font-size: 8px; line-height: 1.7; }
@@ -295,13 +310,13 @@
         <h1>TREASURE <span>HUNT</span></h1>
         <p class="screen-copy">Choose your team, gather the treasure, and find the one key that opens the way out. Something down here is listening.</p>
         <div class="lobby-title">CHOOSE YOUR TEAM</div>
-        <div class="mode-grid" role="group" aria-label="Team size">
+        <div class="mode-grid" id="mainModeGrid" role="group" aria-label="Team size">
           <button class="mode-button selected" data-mode="solo" type="button"><strong>1</strong>SOLO</button>
           <button class="mode-button" data-mode="duo" type="button"><strong>2</strong>DUO</button>
           <button class="mode-button" data-mode="trio" type="button"><strong>3</strong>TRIO</button>
           <button class="mode-button" data-mode="squad" type="button"><strong>4</strong>SQUAD</button>
         </div>
-        <div class="lobby-actions">
+        <div class="lobby-actions" id="lobbyActions">
           <button class="primary" id="startButton">PLAY SOLO</button>
           <button class="secondary" id="randomButton">JOIN RANDOM</button>
           <button class="secondary" id="createLobbyButton">CREATE PRIVATE LOBBY</button>
@@ -312,6 +327,24 @@
           <input id="lobbyCode" maxlength="8" placeholder="ENTER LOBBY CODE" aria-label="Lobby code">
           <button class="secondary" id="submitLobbyCode" type="button">JOIN</button>
         </div>
+        <section class="private-setup" id="privateSetup" aria-label="Private lobby setup" hidden>
+          <div class="private-setup-title">CHOOSE YOUR PRIVATE TEAM</div>
+          <div class="private-mode-grid" role="group" aria-label="Private lobby team size">
+            <button class="private-mode selected" data-private-mode="solo" type="button" aria-pressed="true"><strong>1 PLAYER</strong>SOLO</button>
+            <button class="private-mode" data-private-mode="duo" type="button" aria-pressed="false"><strong>2 PLAYERS</strong>DUO</button>
+            <button class="private-mode" data-private-mode="squad" type="button" aria-pressed="false"><strong>4 PLAYERS</strong>SQUAD</button>
+          </div>
+          <div class="private-code-label">SHARE THIS CODE WITH YOUR PARTY</div>
+          <div class="private-code-row">
+            <output class="private-code-value" id="privateLobbyCode" aria-label="Private lobby code"></output>
+            <button class="secondary" id="copyLobbyCode" type="button">COPY</button>
+          </div>
+          <p class="private-setup-note" id="privateSetupNote">Choose your team, share the code, then confirm to start. This preview displays codes locally; joining players requires a multiplayer server.</p>
+          <div class="private-setup-actions">
+            <button class="secondary" id="cancelPrivateLobby" type="button">BACK</button>
+            <button class="primary" id="confirmPrivateLobby" type="button">CONFIRM &amp; START</button>
+          </div>
+        </section>
         <p class="lobby-note" id="lobbyNote">Solo expedition selected. Download the HTML, or host it online to share a direct link. Online matchmaking needs a game server.</p>
         <div class="controls"><span><kbd>W A S D</kbd> MOVE</span><span><kbd>MOUSE / ARROWS</kbd> LOOK</span><span><kbd>E</kbd> INTERACT</span><span><kbd>F</kbd> FLASHLIGHT</span></div>
         <div class="screen-footer">HEADPHONES RECOMMENDED &nbsp;·&nbsp; WATCH YOUR STEP</div>
@@ -389,7 +422,7 @@
       const monster = { x: 21.5, y: 5.5, angle: Math.PI, state: "patrol", lastHeard: 0, pathAt: 0, waypoints: [[20.5,3.6],[22.5,6.5],[18.3,6.5],[18.3,14.5],[21.4,15.5],[18.2,19.2],[15.2,14.5],[4.2,15.2],[4.3,18.5],[4.3,4.2]], patrolIndex: 0 };
       let started = false, paused = false, finished = false, time = 0, lastTime = 0, toastTimer = 0, walkClock = 0, batteryHudClock = 0;
       let width = 0, height = 0, zBuffer = [], keys = Object.create(null), lastInteraction = 0, touchLookPointer = null, touchLookX = 0, touchLookY = 0, touchJoystickPointer = null, touchMoveX = 0, touchMoveY = 0;
-      let thirdPerson = false, selectedMode = "solo", mouseLookActive = false, audioContext = null, chaseGain = null, chaseTone = null, lastChaseActive = false, audioPitchAt = 0;
+      let thirdPerson = false, selectedMode = "solo", selectedPrivateMode = "solo", pendingLobbyCode = "", mouseLookActive = false, audioContext = null, chaseGain = null, chaseTone = null, lastChaseActive = false, audioPitchAt = 0;
       const fov = Math.PI / 2.9;
       const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
       const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -1300,8 +1333,52 @@
       $("randomButton").addEventListener("click", () => resetGame("public"));
       $("createLobbyButton").addEventListener("click", () => {
         const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        const code = Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
-        resetGame("private", code);
+        pendingLobbyCode = Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+        selectedPrivateMode = ["solo", "duo", "squad"].includes(selectedMode) ? selectedMode : "solo";
+        $("privateLobbyCode").textContent = pendingLobbyCode;
+        $("privateSetup").hidden = false;
+        $("lobbyActions").hidden = true;
+        $("mainModeGrid").hidden = true;
+        $("lobbyCodeRow").hidden = true;
+        document.querySelectorAll(".private-mode").forEach((button) => {
+          const selected = button.dataset.privateMode === selectedPrivateMode;
+          button.classList.toggle("selected", selected);
+          button.setAttribute("aria-pressed", String(selected));
+        });
+        $("privateSetupNote").textContent = "Choose your team, share the code, then confirm to start. This preview displays codes locally; joining players requires a multiplayer server.";
+        $("lobbyNote").textContent = "Private lobby setup: select your team and share the code before starting.";
+      });
+      document.querySelectorAll(".private-mode").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedPrivateMode = button.dataset.privateMode;
+          document.querySelectorAll(".private-mode").forEach((option) => {
+            const selected = option === button;
+            option.classList.toggle("selected", selected);
+            option.setAttribute("aria-pressed", String(selected));
+          });
+        });
+      });
+      $("copyLobbyCode").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(pendingLobbyCode);
+          $("privateSetupNote").textContent = `Code ${pendingLobbyCode} copied. Share it with your party, then confirm to start. Multiplayer joining requires a game server.`;
+        } catch {
+          $("privateSetupNote").textContent = `Select and copy code ${pendingLobbyCode} to share it. Multiplayer joining requires a game server.`;
+        }
+      });
+      $("cancelPrivateLobby").addEventListener("click", () => {
+        $("privateSetup").hidden = true;
+        $("lobbyActions").hidden = false;
+        $("mainModeGrid").hidden = false;
+        $("lobbyNote").textContent = "Private lobby setup cancelled.";
+      });
+      $("confirmPrivateLobby").addEventListener("click", () => {
+        if (!pendingLobbyCode) {
+          $("privateSetupNote").textContent = "Create a new lobby code before starting.";
+          return;
+        }
+        selectedMode = selectedPrivateMode;
+        resetGame("private", pendingLobbyCode);
       });
       $("joinLobbyButton").addEventListener("click", () => {
         $("lobbyCodeRow").hidden = false;
