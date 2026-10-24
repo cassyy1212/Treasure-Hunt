@@ -174,7 +174,7 @@
     .private-setup { margin-top: 14px; padding: 14px; border: 1px solid rgba(226,173,88,.28); background: rgba(12,15,14,.62); }
     .private-setup[hidden] { display: none; }
     .private-setup-title { margin-bottom: 10px; color: var(--paper); font: 700 13px "Barlow Condensed",sans-serif; letter-spacing: .12em; }
-    .private-mode-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+    .private-mode-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 7px; }
     .private-mode { min-height: 44px; border: 1px solid rgba(255,255,255,.17); background: rgba(255,255,255,.035); color: #bcbdb6; font-size: 8px; letter-spacing: .08em; cursor: pointer; }
     .private-mode strong { display: block; margin-bottom: 2px; color: var(--paper); font: 700 14px "Barlow Condensed",sans-serif; }
     .private-mode.selected { border-color: var(--amber); background: rgba(226,173,88,.12); color: var(--amber); }
@@ -385,6 +385,7 @@
           <div class="private-mode-grid" role="group" aria-label="Private lobby team size">
             <button class="private-mode selected" data-private-mode="solo" type="button" aria-pressed="true"><strong>1 PLAYER</strong>SOLO</button>
             <button class="private-mode" data-private-mode="duo" type="button" aria-pressed="false"><strong>2 PLAYERS</strong>DUO</button>
+            <button class="private-mode" data-private-mode="trio" type="button" aria-pressed="false"><strong>3 PLAYERS</strong>TRIO</button>
             <button class="private-mode" data-private-mode="squad" type="button" aria-pressed="false"><strong>4 PLAYERS</strong>SQUAD</button>
           </div>
           <div class="private-code-label">SHARE THIS CODE WITH YOUR PARTY</div>
@@ -392,7 +393,7 @@
             <output class="private-code-value" id="privateLobbyCode" aria-label="Private lobby code"></output>
             <button class="secondary" id="copyLobbyCode" type="button">COPY</button>
           </div>
-          <p class="private-setup-note" id="privateSetupNote">Choose your team, share the code, then confirm to start. This preview displays codes locally; joining players requires a multiplayer server.</p>
+          <p class="private-setup-note" id="privateSetupNote">Choose your team and connect to the multiplayer server to create a shareable lobby code.</p>
           <div class="private-setup-actions">
             <button class="secondary" id="cancelPrivateLobby" type="button">BACK</button>
             <button class="primary" id="confirmPrivateLobby" type="button">CONFIRM &amp; START</button>
@@ -1723,7 +1724,7 @@
       });
       $("randomButton").addEventListener("click", () => resetGame("public"));
       $("createLobbyButton").addEventListener("click", () => {
-        selectedPrivateMode = ["solo", "duo", "squad"].includes(selectedMode) ? selectedMode : "solo";
+        selectedPrivateMode = ["solo", "duo", "trio", "squad"].includes(selectedMode) ? selectedMode : "solo";
         pendingLobbyCode = "";
         $("privateLobbyCode").textContent = "CONNECTING";
         $("privateSetup").hidden = false;

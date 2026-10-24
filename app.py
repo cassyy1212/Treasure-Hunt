@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 app = FastAPI(title="Treasure Hunt Multiplayer")
 ROOMS = {}
-ROOM_CAPACITIES = {"solo": 1, "duo": 2, "squad": 4}
+ROOM_CAPACITIES = {"solo": 1, "duo": 2, "trio": 3, "squad": 4}
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 COIN_REWARDS = {0: 34, 4: 48, 6: 27}
 KEY_CHEST_INDEX = 5
@@ -141,7 +141,7 @@ async def multiplayer_socket(socket: WebSocket):
                 if message_type == "create":
                     mode = message.get("mode")
                     if not isinstance(mode, str) or mode not in ROOM_CAPACITIES:
-                        await send_error(socket, "Choose Solo, Duo, or Squad.")
+                        await send_error(socket, "Choose Solo, Duo, Trio, or Squad.")
                         continue
                     room_code = create_code()
                     player_id = uuid.uuid4().hex
@@ -264,7 +264,7 @@ async def multiplayer_socket(socket: WebSocket):
                     await send_error(socket, "Only the host can change an unstarted lobby.")
                     continue
                 if not isinstance(mode, str) or mode not in ROOM_CAPACITIES:
-                    await send_error(socket, "Choose Solo, Duo, or Squad.")
+                    await send_error(socket, "Choose Solo, Duo, Trio, or Squad.")
                     continue
                 if len(room["players"]) > 1:
                     await send_error(socket, "Team size cannot change after another player joins.")
