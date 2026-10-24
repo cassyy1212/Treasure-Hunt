@@ -1,0 +1,1423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b0b">
+  <title>TREASURE HUNT — Cave Expedition</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
+
+    :root {
+      color-scheme: dark;
+      --paper: #e9e4d9;
+      --muted: #858985;
+      --amber: #e2ad58;
+      --red: #db5148;
+      --panel: rgba(12, 15, 14, .82);
+      --line: rgba(233, 228, 217, .15);
+      font-family: "DM Mono", Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #090b0b; }
+    body { color: var(--paper); }
+    button { color: inherit; font: inherit; }
+
+    #game { position: relative; width: 100%; height: 100%; isolation: isolate; background: #090b0b; }
+    #view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    .vignette, .grain, .scanlines { position: absolute; inset: 0; pointer-events: none; }
+    .vignette { z-index: 1; background: radial-gradient(ellipse at center, transparent 33%, rgba(0,0,0,.45) 74%, rgba(0,0,0,.88) 125%); }
+    .grain { z-index: 2; opacity: .16; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E"); mix-blend-mode: screen; }
+    .scanlines { z-index: 2; opacity: .08; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,.5) 4px); }
+
+    .topbar { position: absolute; z-index: 4; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; padding: 26px 34px; pointer-events: none; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark { width: 27px; height: 30px; display: grid; place-items: center; color: #111; background: var(--amber); clip-path: polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); font-size: 15px; }
+    .brand-name { font: 800 18px/1 "Barlow Condensed", sans-serif; letter-spacing: .19em; }
+    .brand-sub { margin-top: 5px; font-size: 8px; color: #8f938f; letter-spacing: .24em; }
+    .chapter { text-align: right; font-size: 9px; line-height: 1.8; letter-spacing: .13em; color: #b0b0a7; }
+    .chapter strong { display: block; color: var(--paper); font: 700 15px "Barlow Condensed", sans-serif; letter-spacing: .15em; }
+
+    .hud { position: absolute; z-index: 4; inset: 0; pointer-events: none; }
+    .panel { background: var(--panel); border: 1px solid var(--line); box-shadow: 0 12px 38px rgba(0,0,0,.24); backdrop-filter: blur(7px); }
+    .status { position: absolute; left: 32px; bottom: 30px; width: 218px; padding: 15px 17px 14px; }
+    .eyebrow { color: var(--muted); font-size: 8px; letter-spacing: .2em; }
+    .lives { display: flex; align-items: center; gap: 7px; margin: 10px 0 14px; }
+    .heart { color: var(--red); font-size: 17px; line-height: 1; text-shadow: 0 0 12px rgba(219,81,72,.3); }
+    .heart.lost { color: #484b48; text-shadow: none; }
+    .divider { height: 1px; background: var(--line); margin: 11px 0; }
+    .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; }
+    .stat-row + .stat-row { margin-top: 9px; }
+    .stat-label { color: #9a9e98; }
+    .stat-value { color: var(--paper); }
+    .coin-icon { color: var(--amber); }
+    .battery-meter { height: 4px; margin-top: 8px; background: rgba(255,255,255,.12); }
+    .battery-fill { width: 100%; height: 100%; background: #a5c28c; box-shadow: 0 0 10px rgba(165,194,140,.28); transition: width .2s, background .2s; }
+    .battery-fill.low { background: #db5148; box-shadow: 0 0 10px rgba(219,81,72,.4); }
+    .battery-caption { display: flex; justify-content: space-between; margin-top: 6px; color: #9a9e98; font-size: 8px; }
+
+    .objective { position: absolute; top: 99px; left: 32px; width: 228px; padding: 15px 17px; }
+    .objective-title { margin: 8px 0 10px; font: 700 18px/1 "Barlow Condensed", sans-serif; letter-spacing: .06em; }
+    .objective-copy { color: #a7aaa3; font-size: 9px; line-height: 1.8; }
+    .objective-step { display: flex; align-items: center; gap: 8px; margin-top: 11px; font-size: 9px; color: #a7aaa3; }
+    .step-dot { width: 14px; height: 14px; display: grid; place-items: center; border: 1px solid #525752; border-radius: 50%; font-size: 8px; }
+    .objective-step.done { color: #a6c49a; }
+    .objective-step.done .step-dot { border-color: #75976b; color: #a6c49a; }
+
+    .threat { position: absolute; top: 105px; right: 32px; width: 172px; opacity: 0; transform: translateY(-5px); transition: opacity .3s, transform .3s; }
+    .threat.visible { opacity: 1; transform: translateY(0); }
+    .threat-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 8px; letter-spacing: .15em; color: #f27a69; }
+    .threat-bar { height: 3px; background: rgba(255,255,255,.12); }
+    .threat-fill { width: 0; height: 100%; background: var(--red); box-shadow: 0 0 12px var(--red); transition: width .25s; }
+    .threat-hint { margin-top: 7px; font-size: 8px; color: #a88c86; }
+
+    .compass { position: absolute; top: 28px; left: 50%; transform: translateX(-50%); width: 112px; text-align: center; color: #c8c4b8; font-size: 8px; letter-spacing: .19em; }
+    .compass-line { height: 1px; margin-top: 8px; background: linear-gradient(90deg, transparent, rgba(230,220,195,.5), transparent); }
+    .compass-mark { display: inline-block; margin-top: 5px; color: var(--amber); font-size: 8px; }
+
+    .reticle { position: absolute; left: 50%; top: 50%; width: 15px; height: 15px; transform: translate(-50%,-50%); opacity: .78; transition: transform .15s, opacity .15s; }
+    .reticle:before, .reticle:after { content: ""; position: absolute; background: rgba(240,236,222,.8); }
+    .reticle:before { width: 1px; height: 13px; left: 7px; top: 1px; }
+    .reticle:after { height: 1px; width: 13px; top: 7px; left: 1px; }
+    .reticle.active { transform: translate(-50%,-50%) scale(1.45); opacity: 1; }
+    .prompt { position: absolute; top: calc(50% + 29px); left: 50%; transform: translateX(-50%); padding: 8px 11px; background: rgba(8,10,9,.76); border: 1px solid rgba(255,255,255,.14); color: #e9e4d9; font-size: 9px; letter-spacing: .08em; white-space: nowrap; opacity: 0; transition: opacity .12s; }
+    .prompt.show { opacity: 1; }
+    .keycap { display: inline-grid; min-width: 20px; height: 19px; margin-right: 7px; padding: 0 4px; place-items: center; border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.08); color: var(--amber); }
+
+    .bottom-right { position: absolute; right: 32px; bottom: 31px; text-align: right; color: #9b9f98; font-size: 8px; line-height: 2; letter-spacing: .08em; }
+    .bottom-right b { color: #e6e2d7; font-weight: 400; }
+    .toast { position: absolute; left: 50%; bottom: 106px; transform: translate(-50%, 8px); padding: 11px 16px; border: 1px solid rgba(226,173,88,.3); background: rgba(12,15,14,.9); color: var(--paper); font-size: 10px; letter-spacing: .06em; opacity: 0; transition: all .22s; white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translate(-50%,0); }
+    .hidden-note { position: absolute; top: 47%; left: 50%; transform: translate(-50%,-50%); color: rgba(226,173,88,.78); font: 700 13px "Barlow Condensed", sans-serif; letter-spacing: .24em; opacity: 0; transition: opacity .25s; }
+    .hidden-note.show { opacity: 1; }
+    .camera-toggle { position: absolute; z-index: 5; top: 78px; right: 32px; padding: 9px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--paper); font-size: 8px; letter-spacing: .1em; cursor: pointer; pointer-events: auto; }
+    .view-controls { position: absolute; z-index: 5; top: 78px; right: 32px; display: flex; gap: 7px; pointer-events: auto; }
+    .view-controls .camera-toggle { position: static; }
+    .flashlight-toggle { padding: 9px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--paper); font-size: 8px; letter-spacing: .1em; cursor: pointer; }
+    .flashlight-toggle[aria-pressed="false"] { color: #8c9089; border-color: rgba(255,255,255,.09); }
+    .flashlight-toggle:disabled { color: #73766f; cursor: not-allowed; }
+    .map-toggle { position: absolute; z-index: 5; right: 32px; bottom: 125px; padding: 9px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--paper); font-size: 8px; letter-spacing: .1em; cursor: pointer; pointer-events: auto; }
+    .map-panel { position: absolute; z-index: 4; right: 32px; bottom: 163px; width: 218px; padding: 11px; pointer-events: auto; }
+    .map-panel[hidden] { display: none; }
+    .map-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; color: #a7aaa3; font-size: 8px; letter-spacing: .16em; }
+    .map-heading span:last-child { color: var(--amber); font-size: 7px; }
+    #mapCanvas { display: block; width: 194px; height: 194px; margin: 0 auto; background: #090b0a; image-rendering: pixelated; }
+    .map-legend { display: flex; justify-content: space-between; margin-top: 8px; color: #999d96; font-size: 7px; }
+    .map-legend b { color: var(--amber); font-weight: 400; }
+    .chat-toggle { position: absolute; z-index: 6; right: 32px; bottom: 31px; padding: 9px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--paper); font-size: 8px; letter-spacing: .1em; cursor: pointer; pointer-events: auto; }
+    .chat-panel { position: absolute; z-index: 6; right: 32px; bottom: 70px; display: flex; flex-direction: column; width: min(290px, calc(100vw - 30px)); height: 220px; padding: 12px; pointer-events: auto; }
+    .chat-panel[hidden] { display: none; }
+    .chat-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 9px; border-bottom: 1px solid var(--line); color: var(--paper); font-size: 9px; letter-spacing: .13em; }
+    .chat-local { color: #9a9e98; font-size: 7px; letter-spacing: .05em; }
+    .chat-messages { display: flex; flex: 1; flex-direction: column; gap: 7px; overflow-y: auto; margin: 9px 0; padding: 0; list-style: none; scrollbar-width: thin; }
+    .chat-message { color: #c9c7bf; font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
+    .chat-message.system { color: #a8bd8c; }
+    .chat-name { margin-right: 5px; color: var(--amber); }
+    .chat-form { display: flex; gap: 6px; }
+    .chat-form input { min-width: 0; flex: 1; padding: 9px; border: 1px solid var(--line); outline: none; background: rgba(0,0,0,.45); color: var(--paper); font: 9px "DM Mono", monospace; }
+    .chat-form input:focus { border-color: var(--amber); }
+    .chat-form button { padding: 0 11px; border: 1px solid rgba(226,173,88,.42); background: rgba(226,173,88,.12); color: var(--amber); font-size: 8px; cursor: pointer; }
+    .touch-controls { position: absolute; z-index: 5; left: 15px; bottom: 15px; display: none; grid-template-columns: repeat(3, 43px); grid-template-rows: repeat(2, 42px); gap: 4px; pointer-events: auto; touch-action: none; }
+    .touch-controls button { border: 1px solid rgba(233,228,217,.24); background: rgba(12,15,14,.78); color: var(--paper); font: 700 15px "Barlow Condensed", sans-serif; touch-action: none; user-select: none; }
+    .touch-controls button:active { border-color: var(--amber); color: var(--amber); background: rgba(226,173,88,.16); }
+    .touch-controls .touch-interact { color: var(--amber); font-size: 9px; letter-spacing: .05em; }
+    .touch-controls .touch-sprint { grid-column: 3; font-size: 9px; letter-spacing: .04em; }
+    .camera-toggle:hover, .secondary:hover, .mode-button:hover { border-color: var(--amber); color: var(--amber); }
+    .exit-cabinet { position: absolute; z-index: 5; top: calc(50% + 43px); left: 50%; transform: translateX(-50%); padding: 10px 16px; border: 1px solid rgba(226,173,88,.55); background: rgba(12,15,14,.94); color: var(--amber); font-size: 9px; letter-spacing: .12em; cursor: pointer; pointer-events: auto; }
+    .exit-cabinet[hidden] { display: none; }
+    .hiding-overlay { position: absolute; z-index: 3; inset: 0; display: none; overflow: hidden; background: linear-gradient(90deg,#17130f 0 11%,#211a13 12% 15%,#0a0b09 16% 22%,#17130f 23% 77%,#0a0b09 78% 84%,#211a13 85% 88%,#17130f 89%); pointer-events: none; }
+    .hiding-overlay:before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg,transparent 0 15%,rgba(123,94,58,.11) 15.2% 15.6%,transparent 15.8% 31%), linear-gradient(0deg,rgba(0,0,0,.7),transparent 40%,rgba(0,0,0,.35)); }
+    .hiding-overlay:after { content: ""; position: absolute; left: 43%; top: 0; width: 16%; height: 100%; background: linear-gradient(90deg,transparent,rgba(0,0,0,.72),transparent); }
+    #game.is-hidden .hiding-overlay { display: block; }
+    #game.third-person .vignette { background: radial-gradient(ellipse at center, transparent 44%, rgba(0,0,0,.34) 78%, rgba(0,0,0,.8) 125%); }
+
+    .screen { position: absolute; z-index: 8; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 48%, rgba(7,9,8,.25), rgba(5,7,6,.89) 82%); transition: opacity .35s, visibility .35s; }
+    .screen.off { display: none; opacity: 0; visibility: hidden; pointer-events: none; }
+    .screen-card { width: min(450px, calc(100vw - 40px)); max-height: 100%; overflow-y: auto; padding: 24px 0; text-align: center; scrollbar-width: thin; scrollbar-color: rgba(226,173,88,.35) transparent; }
+    .screen-kicker { color: var(--amber); font-size: 9px; letter-spacing: .3em; }
+    .screen h1 { margin: 15px 0 8px; font: 900 clamp(53px, 9vw, 82px)/.83 "Barlow Condensed", sans-serif; letter-spacing: .025em; text-shadow: 0 5px 32px rgba(0,0,0,.7); }
+    .screen h1 span { display: block; color: var(--amber); }
+    .screen-copy { max-width: 330px; margin: 22px auto 25px; color: #a5a8a2; font-size: 10px; line-height: 1.9; }
+    .primary { min-width: 188px; padding: 14px 22px; border: 0; background: var(--amber); color: #171512; font: 800 14px "Barlow Condensed", sans-serif; letter-spacing: .16em; cursor: pointer; transition: background .15s, transform .15s; }
+    .primary:hover { background: #f0c575; transform: translateY(-2px); }
+    .controls { display: flex; justify-content: center; gap: 19px; margin-top: 29px; color: #92968f; font-size: 8px; }
+    .controls span { display: flex; align-items: center; gap: 6px; }
+    .controls kbd { padding: 4px 6px; border: 1px solid rgba(255,255,255,.2); color: #ddd8cd; font: inherit; }
+    .screen-footer { margin-top: 36px; color: #626761; font-size: 8px; letter-spacing: .15em; }
+    .lobby-title { margin: 22px 0 9px; font: 700 14px "Barlow Condensed", sans-serif; letter-spacing: .16em; }
+    .mode-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin: 13px auto 15px; }
+    .mode-button, .secondary { border: 1px solid rgba(255,255,255,.17); background: rgba(255,255,255,.035); color: #bcbdb6; cursor: pointer; transition: .15s; }
+    .mode-button { padding: 10px 4px; font-size: 8px; letter-spacing: .08em; }
+    .mode-button strong { display: block; margin-bottom: 3px; color: var(--paper); font: 700 15px "Barlow Condensed", sans-serif; }
+    .mode-button.selected { border-color: var(--amber); background: rgba(226,173,88,.12); color: var(--amber); }
+    .lobby-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .lobby-actions .primary { width: 100%; min-width: 0; }
+    .secondary { min-height: 39px; padding: 8px; font-size: 8px; letter-spacing: .07em; }
+    .download-link { display: flex; grid-column: 1 / -1; min-height: 39px; align-items: center; justify-content: center; padding: 8px; border: 1px solid rgba(226,173,88,.42); background: rgba(226,173,88,.08); color: var(--amber); font-size: 8px; letter-spacing: .08em; text-decoration: none; }
+    .download-link:hover { background: rgba(226,173,88,.16); }
+    .lobby-code { display: flex; gap: 7px; margin-top: 9px; }
+    .lobby-code[hidden] { display: none; }
+    .lobby-code input { min-width: 0; flex: 1; padding: 9px; border: 1px solid rgba(255,255,255,.17); outline: none; background: rgba(0,0,0,.38); color: var(--paper); font: 10px "DM Mono",monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .lobby-code input:focus { border-color: var(--amber); }
+    .lobby-note { margin: 12px auto 0; color: #797d76; font-size: 8px; line-height: 1.7; }
+    .screen.ending { background: rgba(5,7,6,.89); }
+    .screen.ending h1 { font-size: clamp(48px, 8vw, 68px); }
+    .pause-label { display: none; position: absolute; z-index: 6; inset: 0; place-items: center; background: rgba(0,0,0,.3); font: 800 26px "Barlow Condensed", sans-serif; letter-spacing: .2em; }
+    .pause-label.show { display: grid; }
+
+    @media (max-width: 700px) {
+      .topbar { padding: 19px 17px; }
+      .chapter { font-size: 8px; }
+      .objective { top: 84px; left: 15px; width: 184px; padding: 12px; }
+      .objective-copy { font-size: 8px; }
+      .status { left: 15px; bottom: 16px; width: 184px; padding: 11px 13px; }
+      .threat { top: 116px; right: 15px; width: 130px; }
+      .view-controls { top: 76px; right: 15px; }
+      .map-toggle { right: 15px; bottom: 125px; }
+      .map-panel { right: 15px; bottom: 163px; width: 170px; padding: 8px; }
+      #mapCanvas { width: 152px; height: 152px; }
+      .chat-toggle { right: 15px; bottom: 15px; }
+      .chat-panel { right: 15px; bottom: 55px; }
+      .bottom-right { right: 15px; bottom: 16px; font-size: 7px; }
+      .compass { top: 21px; }
+      .controls { gap: 10px; flex-wrap: wrap; }
+    }
+    @media (max-height: 720px) {
+      .screen-card { padding: 12px 0; }
+      .screen h1 { margin: 9px 0 5px; font-size: clamp(46px, 7vw, 64px); }
+      .screen-copy { margin: 12px auto 15px; }
+      .lobby-title { margin: 13px 0 7px; }
+      .mode-grid { margin: 9px auto 11px; }
+      .mode-button { padding: 7px 4px; }
+      .lobby-note { margin-top: 8px; }
+      .controls { margin-top: 15px; }
+      .screen-footer { margin-top: 18px; }
+    }
+    @media (pointer: coarse) {
+      .touch-controls { right: 15px; bottom: 15px; left: auto; display: grid; }
+      .status { width: 165px; padding: 10px 12px; }
+      .status .stat-row { font-size: 8px; }
+      .status .lives { margin: 7px 0 9px; }
+      .status .divider { margin: 8px 0; }
+      .map-toggle { bottom: 205px; }
+      .chat-toggle { bottom: 165px; }
+      .chat-panel { bottom: 205px; }
+      .map-panel { display: none; }
+      .map-panel:not([hidden]) { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <main id="game">
+    <canvas id="view" aria-label="First-person view inside a dark cave"></canvas>
+    <div class="vignette"></div><div class="grain"></div><div class="scanlines"></div>
+
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark">◆</div><div><div class="brand-name">TREASURE HUNT</div><div class="brand-sub">CAVE EXPEDITION // 01</div></div></div>
+      <div class="chapter"><strong>THE HOLLOW</strong>UNMAPPED TERRITORY</div>
+    </header>
+
+    <section class="hud" aria-label="Game status">
+      <div class="objective panel">
+        <div class="eyebrow">CURRENT OBJECTIVE</div>
+        <div class="objective-title" id="objectiveTitle">FIND THE EXIT KEY</div>
+        <div class="objective-copy" id="objectiveCopy">Search the chests for the key and drawers for batteries. Something is listening.</div>
+        <div class="objective-step" id="keyStep"><span class="step-dot">1</span><span>Recover the hidden key</span></div>
+        <div class="objective-step" id="exitStep"><span class="step-dot">2</span><span>Reach the locked exit</span></div>
+      </div>
+      <div class="threat" id="threat">
+        <div class="threat-head"><span>IT HEARD YOU</span><span id="threatDistance">NEAR</span></div>
+        <div class="threat-bar"><div class="threat-fill" id="threatFill"></div></div>
+        <div class="threat-hint" id="threatHint">Keep moving. Don't look back.</div>
+      </div>
+      <div class="view-controls">
+        <button class="camera-toggle" id="cameraToggle" type="button">CAMERA: FIRST PERSON</button>
+        <button class="flashlight-toggle" id="flashlightToggle" type="button" aria-pressed="true">LIGHT: ON [F]</button>
+      </div>
+      <div class="panel map-panel" id="mapPanel">
+        <div class="map-heading"><span>CAVE MAP</span><span id="mapRegion">ENTRANCE</span></div>
+        <canvas id="mapCanvas" width="388" height="388" aria-label="Map of explored cave passages"></canvas>
+        <div class="map-legend"><span><b>▲</b> YOU</span><span>□ CHEST</span><span><b>◆</b> EXIT</span></div>
+      </div>
+      <button class="map-toggle" id="mapToggle" type="button" aria-expanded="true">MAP: ON [M]</button>
+      <div class="panel chat-panel" id="chatPanel" hidden>
+        <div class="chat-header"><span>EXPEDITION CHAT</span><span class="chat-local">LOCAL PREVIEW</span></div>
+        <ul class="chat-messages" id="chatMessages" aria-live="polite">
+          <li class="chat-message system">Messages stay on this device until multiplayer is connected.</li>
+        </ul>
+        <form class="chat-form" id="chatForm">
+          <input id="chatInput" maxlength="160" autocomplete="off" placeholder="Type a message..." aria-label="Chat message">
+          <button type="submit">SEND</button>
+        </form>
+      </div>
+      <button class="chat-toggle" id="chatToggle" type="button" aria-expanded="false">CHAT</button>
+      <div class="touch-controls" id="touchControls" aria-label="Touch movement controls">
+        <button type="button" data-key="KeyW" style="grid-column:2" aria-label="Move forward">▲</button>
+        <button type="button" data-key="KeyA" aria-label="Move left">◀</button>
+        <button type="button" data-action="interact" class="touch-interact" aria-label="Interact">USE</button>
+        <button type="button" data-key="KeyD" aria-label="Move right">▶</button>
+        <button type="button" data-key="KeyS" style="grid-column:2" aria-label="Move backward">▼</button>
+        <button type="button" data-key="ShiftLeft" class="touch-sprint" aria-label="Sprint">RUN</button>
+      </div>
+      <div class="compass"><span id="region">ENTRANCE TUNNELS</span><div class="compass-line"></div><span class="compass-mark">◆</span></div>
+      <div class="reticle" id="reticle"></div>
+      <div class="prompt" id="prompt"></div>
+      <div class="hidden-note" id="hiddenNote">HIDDEN — HOLD STILL</div>
+      <button class="exit-cabinet" id="exitCabinet" type="button" hidden>EXIT CABINET</button>
+      <div class="toast" id="toast"></div>
+      <div class="panel status">
+        <div class="eyebrow">EXPEDITION STATUS</div>
+        <div class="lives" id="lives" aria-label="3 lives"></div>
+        <div class="divider"></div>
+        <div class="stat-row"><span class="stat-label">COINS</span><span class="stat-value"><span class="coin-icon">◆</span> <span id="coins">000</span></span></div>
+        <div class="stat-row"><span class="stat-label">EXIT KEY</span><span class="stat-value" id="keyStatus">NOT FOUND</span></div>
+        <div class="stat-row"><span class="stat-label">PARTY</span><span class="stat-value" id="teamStatus">1 / 1 LOCAL</span></div>
+        <div class="divider"></div>
+        <div class="stat-row"><span class="stat-label">FLASHLIGHT</span><span class="stat-value" id="batteryValue">100%</span></div>
+        <div class="battery-meter"><div class="battery-fill" id="batteryFill"></div></div>
+      </div>
+      <div class="bottom-right"><b>W A S D</b> &nbsp; MOVE<br><b>MOUSE / ARROWS</b> &nbsp; LOOK &nbsp;·&nbsp; <b>E</b> INTERACT<br><b>F</b> &nbsp; LIGHT &nbsp;·&nbsp; <b>SHIFT</b> SPRINT</div>
+    </section>
+    <div class="hiding-overlay" aria-hidden="true"></div>
+    <div class="pause-label" id="pauseLabel">PAUSED</div>
+
+    <section class="screen" id="startScreen">
+      <div class="screen-card">
+        <div class="screen-kicker">A CAVE HORROR EXPEDITION</div>
+        <h1>TREASURE <span>HUNT</span></h1>
+        <p class="screen-copy">Choose your team, gather the treasure, and find the one key that opens the way out. Something down here is listening.</p>
+        <div class="lobby-title">CHOOSE YOUR TEAM</div>
+        <div class="mode-grid" role="group" aria-label="Team size">
+          <button class="mode-button selected" data-mode="solo" type="button"><strong>1</strong>SOLO</button>
+          <button class="mode-button" data-mode="duo" type="button"><strong>2</strong>DUO</button>
+          <button class="mode-button" data-mode="trio" type="button"><strong>3</strong>TRIO</button>
+          <button class="mode-button" data-mode="squad" type="button"><strong>4</strong>SQUAD</button>
+        </div>
+        <div class="lobby-actions">
+          <button class="primary" id="startButton">PLAY SOLO</button>
+          <button class="secondary" id="randomButton">JOIN RANDOM</button>
+          <button class="secondary" id="createLobbyButton">CREATE PRIVATE LOBBY</button>
+          <button class="secondary" id="joinLobbyButton">JOIN WITH CODE</button>
+          <a class="download-link" href="./treasure-hunt.html" download="treasure-hunt.html">DOWNLOAD GAME FOR MOBILE</a>
+        </div>
+        <div class="lobby-code" id="lobbyCodeRow" hidden>
+          <input id="lobbyCode" maxlength="8" placeholder="ENTER LOBBY CODE" aria-label="Lobby code">
+          <button class="secondary" id="submitLobbyCode" type="button">JOIN</button>
+        </div>
+        <p class="lobby-note" id="lobbyNote">Solo expedition selected. Download the HTML, or host it online to share a direct link. Online matchmaking needs a game server.</p>
+        <div class="controls"><span><kbd>W A S D</kbd> MOVE</span><span><kbd>MOUSE / ARROWS</kbd> LOOK</span><span><kbd>E</kbd> INTERACT</span><span><kbd>F</kbd> FLASHLIGHT</span></div>
+        <div class="screen-footer">HEADPHONES RECOMMENDED &nbsp;·&nbsp; WATCH YOUR STEP</div>
+      </div>
+    </section>
+    <section class="screen ending off" id="endScreen">
+      <div class="screen-card">
+        <div class="screen-kicker" id="endKicker">EXPEDITION COMPLETE</div>
+        <h1 id="endTitle">YOU ESCAPED<span>THE HOLLOW</span></h1>
+        <p class="screen-copy" id="endCopy">You found a way out of the cave.</p>
+        <button class="primary" id="restartButton">PLAY AGAIN</button>
+        <div class="screen-footer">TREASURE HUNT // CAVE EXPEDITION</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("view");
+      const ctx = canvas.getContext("2d");
+      const mapCanvas = document.getElementById("mapCanvas");
+      const mapCtx = mapCanvas.getContext("2d");
+      const $ = (id) => document.getElementById(id);
+      const stoneTexture = createStoneTexture();
+      const tileSize = 27;
+      const mapSize = 27;
+      const map = Array.from({ length: mapSize }, () => Array(mapSize).fill(1));
+      const explored = Array.from({ length: mapSize }, () => Array(mapSize).fill(false));
+      const carve = (x1, y1, x2, y2) => {
+        for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) map[y][x] = 0;
+      };
+      carve(1, 1, 8, 8);
+      carve(15, 1, 24, 8);
+      carve(8, 4, 15, 4);
+      carve(1, 13, 8, 20);
+      carve(4, 8, 4, 13);
+      carve(13, 13, 23, 20);
+      carve(18, 8, 18, 13);
+      carve(8, 16, 13, 16);
+      carve(14, 22, 23, 25);
+      carve(18, 20, 18, 22);
+
+      const chests = [
+        { x: 6.15, y: 2.55, kind: "coins", opened: false, reward: 34 },
+        { x: 17.5, y: 3.2, kind: "decoy", opened: false },
+        { x: 20.5, y: 6.1, kind: "decoy", opened: false },
+        { x: 3.25, y: 17.1, kind: "decoy", opened: false },
+        { x: 15.5, y: 17.6, kind: "coins", opened: false, reward: 48 },
+        { x: 20.5, y: 17.4, kind: "key", opened: false },
+        { x: 11.2, y: 15.8, kind: "coins", opened: false, reward: 27 }
+      ];
+      const hides = [
+        { x: 6.3, y: 6.2, used: false },
+        { x: 21.7, y: 5.5, used: false },
+        { x: 2.4, y: 15.1, used: false },
+        { x: 15.2, y: 19.2, used: false }
+      ];
+      const drawers = [
+        { x: 7.1, y: 6.5, searched: false, battery: true },
+        { x: 17.2, y: 5.8, searched: false, battery: true },
+        { x: 6.1, y: 18.5, searched: false, battery: true },
+        { x: 15.1, y: 18.7, searched: false, battery: true },
+        { x: 22, y: 23.4, searched: false, battery: true }
+      ];
+      const exitDoor = { x: 18.5, y: 24.35 };
+      const playerStart = { x: 3.3, y: 5.5, angle: 0 };
+      const player = { ...playerStart, lives: 3, coins: 0, hasKey: false, hidden: false, running: false, moving: false, battery: 100, flashlightOn: true, stride: 0, turnMotion: 0, pitch: 0 };
+      const checkpoints = [
+        { x: 3.3, y: 5.5, region: "ENTRANCE TUNNELS" },
+        { x: 4.3, y: 15.3, region: "LOWER PASSAGE" },
+        { x: 18.4, y: 15.3, region: "THE SUNKEN HALL" },
+        { x: 18.5, y: 23.2, region: "EXIT CHAMBER" }
+      ];
+      let activeCheckpoint = checkpoints[0];
+      const monster = { x: 21.5, y: 5.5, angle: Math.PI, state: "patrol", lastHeard: 0, pathAt: 0, waypoints: [[20.5,3.6],[22.5,6.5],[18.3,6.5],[18.3,14.5],[21.4,15.5],[18.2,19.2],[15.2,14.5],[4.2,15.2],[4.3,18.5],[4.3,4.2]], patrolIndex: 0 };
+      let started = false, paused = false, finished = false, time = 0, lastTime = 0, toastTimer = 0, walkClock = 0, batteryHudClock = 0;
+      let width = 0, height = 0, zBuffer = [], keys = Object.create(null), lastInteraction = 0, touchLookPointer = null, touchLookX = 0, touchLookY = 0;
+      let thirdPerson = false, selectedMode = "solo", mouseLookActive = false, audioContext = null, chaseGain = null, chaseTone = null, lastChaseActive = false, audioPitchAt = 0;
+      const fov = Math.PI / 2.9;
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+      const wallAt = (x, y) => !map[Math.floor(y)] || map[Math.floor(y)][Math.floor(x)] !== 0;
+
+      function createStoneTexture() {
+        const texture = document.createElement("canvas");
+        texture.width = 128;
+        texture.height = 128;
+        const textureCtx = texture.getContext("2d");
+        let seed = 42173;
+        const random = () => {
+          seed = (seed * 1664525 + 1013904223) >>> 0;
+          return seed / 4294967296;
+        };
+        textureCtx.fillStyle = "#343832";
+        textureCtx.fillRect(0, 0, 128, 128);
+        for (let row = 0; row < 5; row++) {
+          const cellHeight = 23 + random() * 5;
+          let x = -12 + random() * 24;
+          const y = row * 27 - 5;
+          while (x < 128) {
+            const cellWidth = 24 + random() * 26;
+            const inset = 2 + random() * 3;
+            const points = [
+              [x + inset, y + 2], [x + cellWidth - 3, y + random() * 4],
+              [x + cellWidth, y + cellHeight * .42], [x + cellWidth - inset, y + cellHeight - 2],
+              [x + 3, y + cellHeight], [x, y + cellHeight * .55]
+            ];
+            const tone = Math.floor(49 + random() * 27);
+            textureCtx.fillStyle = `rgb(${tone},${tone + 3},${tone - 2})`;
+            textureCtx.beginPath();
+            points.forEach(([px, py], index) => index ? textureCtx.lineTo(px, py) : textureCtx.moveTo(px, py));
+            textureCtx.closePath();
+            textureCtx.fill();
+            textureCtx.strokeStyle = "rgba(7,9,8,.48)";
+            textureCtx.lineWidth = 1.5;
+            textureCtx.stroke();
+            textureCtx.strokeStyle = `rgba(206,197,168,${.05 + random() * .09})`;
+            textureCtx.lineWidth = 1;
+            textureCtx.beginPath();
+            textureCtx.moveTo(x + inset + 2, y + 4);
+            textureCtx.lineTo(x + cellWidth - 5, y + 3);
+            textureCtx.stroke();
+            if (random() > .55) {
+              textureCtx.strokeStyle = "rgba(9,11,10,.48)";
+              textureCtx.beginPath();
+              textureCtx.moveTo(x + cellWidth * (.35 + random() * .3), y + cellHeight * .35);
+              textureCtx.lineTo(x + cellWidth * (.4 + random() * .3), y + cellHeight * .63);
+              textureCtx.lineTo(x + cellWidth * (.32 + random() * .3), y + cellHeight * .78);
+              textureCtx.stroke();
+            }
+            x += cellWidth;
+          }
+        }
+        for (let i = 0; i < 260; i++) {
+          const shade = random() > .5 ? "rgba(5,7,6,.22)" : "rgba(191,185,160,.12)";
+          textureCtx.fillStyle = shade;
+          textureCtx.fillRect(random() * 128, random() * 128, 1 + random() * 2, 1 + random() * 2);
+        }
+        return texture;
+      }
+
+      function resize() {
+        const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+        width = canvas.clientWidth; height = canvas.clientHeight;
+        canvas.width = Math.floor(width * ratio); canvas.height = Math.floor(height * ratio);
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        width = canvas.clientWidth; height = canvas.clientHeight;
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      function getCameraPosition() {
+        if (!thirdPerson || player.hidden) return { x: player.x, y: player.y };
+        let offset = 1.25;
+        while (offset > .25 && wallAt(player.x - Math.cos(player.angle) * offset, player.y - Math.sin(player.angle) * offset)) offset -= .15;
+        return { x: player.x - Math.cos(player.angle) * offset, y: player.y - Math.sin(player.angle) * offset };
+      }
+
+      function renderWorld() {
+        const stepBob = player.moving ? Math.sin(player.stride * 2) * (player.running ? 5 : 3) : Math.sin(time * 1.7) * .7;
+        const viewShift = -player.pitch * height * .62 + stepBob;
+        const horizon = height * .52 + viewShift;
+        const sky = ctx.createLinearGradient(0, 0, 0, horizon);
+        sky.addColorStop(0, "#050706"); sky.addColorStop(.7, "#101310"); sky.addColorStop(1, "#24251e");
+        ctx.fillStyle = sky; ctx.fillRect(0, 0, width, horizon);
+        drawCaveCeiling(horizon);
+        const floor = ctx.createLinearGradient(0, horizon, 0, height);
+        floor.addColorStop(0, "#24231c"); floor.addColorStop(.34, "#171915"); floor.addColorStop(1, "#080a09");
+        ctx.fillStyle = floor; ctx.fillRect(0, horizon, width, height - horizon);
+
+        const rays = Math.ceil(width / 2);
+        zBuffer = new Array(rays);
+        const projection = width / (2 * Math.tan(fov / 2));
+        const flicker = 0.92 + Math.sin(time * 7) * .025 + Math.sin(time * 17) * .018;
+        const cameraPosition = getCameraPosition();
+        for (let column = 0; column < rays; column++) {
+          const screenX = column * 2;
+          const camera = (screenX / width - .5) * fov;
+          const angle = player.angle + camera;
+          const rayX = Math.cos(angle), rayY = Math.sin(angle);
+          let mapX = Math.floor(cameraPosition.x), mapY = Math.floor(cameraPosition.y);
+          const deltaX = Math.abs(1 / (rayX || .00001)), deltaY = Math.abs(1 / (rayY || .00001));
+          const stepX = rayX < 0 ? -1 : 1, stepY = rayY < 0 ? -1 : 1;
+          let sideX = (rayX < 0 ? cameraPosition.x - mapX : mapX + 1 - cameraPosition.x) * deltaX;
+          let sideY = (rayY < 0 ? cameraPosition.y - mapY : mapY + 1 - cameraPosition.y) * deltaY;
+          let side = 0, steps = 0;
+          while (steps++ < 60) {
+            if (sideX < sideY) { sideX += deltaX; mapX += stepX; side = 0; }
+            else { sideY += deltaY; mapY += stepY; side = 1; }
+            if (!map[mapY] || map[mapY][mapX] !== 0) break;
+          }
+          let rawDistance = side === 0 ? sideX - deltaX : sideY - deltaY;
+          rawDistance = Math.max(.08, rawDistance);
+          const corrected = Math.max(.08, rawDistance * Math.cos(camera));
+          zBuffer[column] = corrected;
+          const wallHeight = Math.min(height * 2, projection / corrected);
+          const top = (height - wallHeight) / 2 + viewShift;
+          const edge = side === 0 ? cameraPosition.y + rawDistance * rayY : cameraPosition.x + rawDistance * rayX;
+          const textureX = Math.floor((edge - Math.floor(edge)) * stoneTexture.width);
+          const groove = textureX % 31 < 2 ? .78 : (textureX % 43 < 3 ? 1.08 : 1);
+          const cone = clamp(1 - Math.abs(camera) / .55, 0, 1);
+          const beam = player.flashlightOn && player.battery > 0 ? cone * Math.max(0, 1 - corrected / 13) * .84 : 0;
+          const lamp = .17 + beam * flicker;
+          const shade = lamp * groove * (side ? .72 : 1);
+          const stone = Math.abs(Math.sin(mapX * 127.1 + mapY * 311.7 + Math.floor(edge * 23) * 57.3 + side * 19.1) * 43758.5453) % 1;
+          const variation = stone * 13 - 5;
+          const fog = clamp((corrected - 2.2) / 11, 0, .78);
+          const r = Math.floor((24 + variation) * shade * (1 - fog) + 39 * fog);
+          const g = Math.floor((29 + variation) * shade * (1 - fog) + 43 * fog);
+          const b = Math.floor((25 + variation * .6) * shade * (1 - fog) + 40 * fog);
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
+          ctx.fillRect(screenX, top, 2.2, wallHeight);
+          ctx.save();
+          ctx.globalAlpha = clamp(shade * (1 - fog) * 1.18, .08, .76);
+          ctx.drawImage(stoneTexture, textureX, 0, 1, stoneTexture.height, screenX, top, 2.2, wallHeight);
+          ctx.restore();
+          if (corrected < 4.2) {
+            ctx.fillStyle = `rgba(93,87,66,${.035 * lamp})`;
+            ctx.fillRect(screenX, top + wallHeight * .68, 2.2, 2);
+          }
+          const floorY = height / 2 + wallHeight / 2 + viewShift;
+          ctx.fillStyle = `rgba(99,84,55,${Math.max(0, .09 * (1 - corrected / 8))})`;
+          ctx.fillRect(screenX, floorY, 2.2, Math.max(0, height - floorY));
+          if (column % 23 === 0 && corrected < 5 && ((mapX * 17 + mapY * 11) % 4) === 0) {
+            const spike = Math.max(2, Math.min(height * .08, wallHeight * .075));
+            ctx.fillStyle = `rgba(7,9,8,${Math.max(.18, 1 - corrected / 9)})`;
+            ctx.beginPath(); ctx.moveTo(screenX, 0); ctx.lineTo(screenX + 9, 0); ctx.lineTo(screenX + 4, Math.min(height * .48, spike)); ctx.closePath(); ctx.fill();
+          }
+        }
+        drawObjects(projection, cameraPosition, viewShift);
+        drawDust(projection, cameraPosition, horizon);
+        if (thirdPerson && !player.hidden) drawPlayerModel();
+        else if (!player.hidden) drawFlashlight();
+        updateExplored();
+        drawMap();
+      }
+
+      function drawCaveCeiling(horizon) {
+        const roof = ctx.createLinearGradient(0, 0, 0, horizon);
+        roof.addColorStop(0, "rgba(2,4,4,.98)");
+        roof.addColorStop(.72, "rgba(8,10,9,.94)");
+        roof.addColorStop(1, "rgba(20,22,18,.35)");
+        ctx.fillStyle = roof;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(width, 0);
+        ctx.lineTo(width, horizon * .78);
+        for (let x = width; x >= 0; x -= 22) {
+          const ridge = .77 + Math.sin(x * .018 + time * .025) * .045 + Math.sin(x * .047) * .025;
+          ctx.lineTo(x, horizon * ridge);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        for (let i = 0; i < 11; i++) {
+          const x = ((i * 173 + width * .11) % (width + 90)) - 45;
+          const sway = Math.sin(i * 12.7) * 7;
+          const base = horizon * (.57 + (i % 4) * .065);
+          const length = horizon * (.07 + (i % 3) * .024);
+          const taper = 3 + (i % 4) * 2;
+          ctx.fillStyle = i % 3 === 0 ? "rgba(31,34,29,.72)" : "rgba(12,15,13,.9)";
+          ctx.beginPath();
+          ctx.moveTo(x - taper * 2, base);
+          ctx.lineTo(x + sway, base + length);
+          ctx.lineTo(x + taper * 2, base);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "rgba(137,130,105,.09)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - taper, base + 3);
+          ctx.lineTo(x + sway * .65, base + length * .72);
+          ctx.stroke();
+        }
+      }
+
+      function drawDust(projection, cameraPosition, horizon) {
+        for (let i = 0; i < 34; i++) {
+          const phase = time * (.14 + (i % 5) * .025) + i * 17.31;
+          const worldX = player.x + Math.cos(phase) * (1.2 + (i % 7) * .62);
+          const worldY = player.y + Math.sin(phase * .83) * (1.1 + (i % 6) * .58);
+          const dx = worldX - cameraPosition.x, dy = worldY - cameraPosition.y;
+          const forward = dx * Math.cos(player.angle) + dy * Math.sin(player.angle);
+          if (forward < .4 || forward > 7) continue;
+          const side = -dx * Math.sin(player.angle) + dy * Math.cos(player.angle);
+          const screenX = width / 2 + side * projection / forward;
+          const screenY = horizon + projection * (.22 + Math.sin(phase * .6) * .045) / forward;
+          if (screenX < 0 || screenX > width || screenY < horizon || screenY > height) continue;
+          const col = clamp(Math.floor(screenX / 2), 0, zBuffer.length - 1);
+          if (forward > zBuffer[col] + .1) continue;
+          const glow = player.flashlightOn && player.battery > 0 ? .2 + .38 * clamp(1 - Math.abs(screenX - width / 2) / (width * .38), 0, 1) : .1;
+          const radius = Math.max(.7, 2.2 / forward);
+          ctx.fillStyle = `rgba(230,203,145,${glow * (1 - forward / 10)})`;
+          ctx.beginPath();
+          ctx.arc(screenX, screenY, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function updateExplored() {
+        const radius = 3.3;
+        const minX = Math.max(0, Math.floor(player.x - radius));
+        const maxX = Math.min(mapSize - 1, Math.ceil(player.x + radius));
+        const minY = Math.max(0, Math.floor(player.y - radius));
+        const maxY = Math.min(mapSize - 1, Math.ceil(player.y + radius));
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            if (Math.hypot(x + .5 - player.x, y + .5 - player.y) <= radius) explored[y][x] = true;
+          }
+        }
+      }
+
+      function drawMap() {
+        const size = mapCanvas.width, cell = size / mapSize;
+        mapCtx.clearRect(0, 0, size, size);
+        mapCtx.fillStyle = "#080a09";
+        mapCtx.fillRect(0, 0, size, size);
+        for (let y = 0; y < mapSize; y++) {
+          for (let x = 0; x < mapSize; x++) {
+            if (!explored[y][x]) continue;
+            mapCtx.fillStyle = map[y][x] === 0 ? "#313832" : "#77766a";
+            mapCtx.fillRect(x * cell + .5, y * cell + .5, cell - 1, cell - 1);
+          }
+        }
+        for (const chest of chests) {
+          if (!explored[Math.floor(chest.y)]?.[Math.floor(chest.x)]) continue;
+          mapCtx.fillStyle = chest.opened ? "#888275" : "#d6a64f";
+          mapCtx.fillRect(chest.x * cell - 3, chest.y * cell - 3, 6, 6);
+        }
+        if (player.hasKey && explored[Math.floor(exitDoor.y)]?.[Math.floor(exitDoor.x)]) {
+          mapCtx.fillStyle = "#e2ad58";
+          mapCtx.beginPath();
+          mapCtx.moveTo(exitDoor.x * cell, exitDoor.y * cell - 7);
+          mapCtx.lineTo(exitDoor.x * cell + 7, exitDoor.y * cell);
+          mapCtx.lineTo(exitDoor.x * cell, exitDoor.y * cell + 7);
+          mapCtx.lineTo(exitDoor.x * cell - 7, exitDoor.y * cell);
+          mapCtx.closePath();
+          mapCtx.fill();
+        }
+        const px = player.x * cell, py = player.y * cell;
+        mapCtx.save();
+        mapCtx.translate(px, py);
+        mapCtx.rotate(player.angle);
+        mapCtx.fillStyle = "#e9e4d9";
+        mapCtx.beginPath();
+        mapCtx.moveTo(8, 0);
+        mapCtx.lineTo(-5, -5);
+        mapCtx.lineTo(-3, 0);
+        mapCtx.lineTo(-5, 5);
+        mapCtx.closePath();
+        mapCtx.fill();
+        mapCtx.restore();
+        mapCtx.strokeStyle = "rgba(226,173,88,.2)";
+        mapCtx.lineWidth = 2;
+        mapCtx.strokeRect(1, 1, size - 2, size - 2);
+      }
+
+      function drawObjects(projection, cameraPosition, viewShift) {
+        const objects = [];
+        for (const chest of chests) if (!chest.opened) objects.push({ ...chest, type: "chest" });
+        for (const hide of hides) objects.push({ ...hide, type: "hide" });
+        for (const drawer of drawers) objects.push({ ...drawer, type: "drawer" });
+        objects.push({ ...exitDoor, type: "door" });
+        if (!player.hidden) objects.push({ ...monster, type: "monster" });
+        objects.sort((a, b) => distance(player, b) - distance(player, a));
+        for (const obj of objects) {
+          const dx = obj.x - cameraPosition.x, dy = obj.y - cameraPosition.y;
+          const forward = dx * Math.cos(player.angle) + dy * Math.sin(player.angle);
+          const side = -dx * Math.sin(player.angle) + dy * Math.cos(player.angle);
+          if (forward < .18) continue;
+          const screenX = width / 2 + side * projection / forward;
+          const size = projection / forward;
+          if (screenX < -size || screenX > width + size) continue;
+          const col = clamp(Math.floor(screenX / 2), 0, zBuffer.length - 1);
+          if (forward > zBuffer[col] + .2) continue;
+          const bottom = height / 2 + size * .34 + viewShift;
+          if (obj.type === "chest") drawChest(screenX, bottom, size, obj);
+          else if (obj.type === "hide") drawCabinet(screenX, bottom, size);
+          else if (obj.type === "drawer") drawDrawer(screenX, bottom, size, obj);
+          else if (obj.type === "door") drawDoor(screenX, bottom, size);
+          else drawMonster(screenX, bottom, size, obj.state);
+        }
+      }
+
+      function drawChest(x, bottom, size, chest) {
+        const w = size * .35, h = size * .24, left = x - w / 2, top = bottom - h;
+        const glow = chest.kind === "key" ? "rgba(226,173,88,.28)" : "rgba(196,139,63,.13)";
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.ellipse(x, bottom - h * .4, w * .95, h * .8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#33251a"; ctx.fillRect(left, top + h * .24, w, h * .68);
+        ctx.fillStyle = chest.kind === "key" ? "#a77939" : "#79542f"; ctx.fillRect(left, top + h * .16, w, h * .28);
+        ctx.fillStyle = "#b98a4e"; ctx.fillRect(left, top + h * .4, w, h * .07);
+        ctx.fillStyle = "#d0ab6b"; ctx.fillRect(x - w * .04, top + h * .36, w * .08, h * .23);
+        ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.fillRect(left + w * .12, top + h * .56, w * .08, h * .22); ctx.fillRect(left + w * .8, top + h * .56, w * .08, h * .22);
+      }
+
+      function drawCabinet(x, bottom, size) {
+        const w = size * .28, h = size * .6, left = x - w / 2, top = bottom - h;
+        ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(x, bottom, w * .8, h * .1, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#292d29"; ctx.fillRect(left, top, w, h);
+        ctx.fillStyle = "#41463f"; ctx.fillRect(left + w * .1, top + h * .04, w * .8, h * .89);
+        ctx.fillStyle = "#20231f"; ctx.fillRect(x - w * .03, top + h * .07, w * .06, h * .84);
+        ctx.fillStyle = "#93805a"; ctx.fillRect(x + w * .18, top + h * .48, w * .04, h * .08);
+      }
+
+      function drawDrawer(x, bottom, size, drawer) {
+        const w = size * .38, h = size * .37, left = x - w / 2, top = bottom - h;
+        ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(x, bottom, w * .72, h * .1, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#29251f"; ctx.fillRect(left, top, w, h);
+        ctx.fillStyle = "#554332"; ctx.fillRect(left + w * .06, top + h * .08, w * .88, h * .84);
+        ctx.fillStyle = "#30281f"; ctx.fillRect(left + w * .13, top + h * .2, w * .74, h * .26);
+        ctx.fillRect(left + w * .13, top + h * .54, w * .74, h * .26);
+        ctx.fillStyle = "#ad8c59"; ctx.fillRect(x - w * .035, top + h * .28, w * .07, h * .045);
+        ctx.fillRect(x - w * .035, top + h * .63, w * .07, h * .045);
+        if (!drawer.searched && drawer.battery) {
+          ctx.fillStyle = "#a8be83"; ctx.shadowColor = "#a8be83"; ctx.shadowBlur = size * .035;
+          ctx.fillRect(left + w * .75, top + h * .04, Math.max(2, w * .1), Math.max(3, h * .08)); ctx.shadowBlur = 0;
+        }
+      }
+
+      function drawDoor(x, bottom, size) {
+        const w = size * .47, h = size * .86, left = x - w / 2, top = bottom - h;
+        ctx.fillStyle = "#272a26"; ctx.fillRect(left - w * .09, top - h * .035, w * 1.18, h + h * .035);
+        ctx.fillStyle = "#51493a"; ctx.fillRect(left, top, w, h);
+        ctx.fillStyle = player.hasKey ? "#816d48" : "#3e4038"; ctx.fillRect(left + w * .1, top + h * .06, w * .8, h * .88);
+        ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = Math.max(1, size * .012); ctx.strokeRect(left + w * .18, top + h * .14, w * .64, h * .72);
+        ctx.fillStyle = player.hasKey ? "#e2ad58" : "#8b704b"; ctx.beginPath(); ctx.arc(left + w * .76, top + h * .53, Math.max(1, size * .025), 0, Math.PI * 2); ctx.fill();
+      }
+
+      function drawMonster(x, bottom, size, state) {
+        const scale = state === "chase" ? 1.13 : 1;
+        const w = size * .42 * scale, h = size * .83 * scale;
+        const phase = time * (state === "chase" ? 12 : 4.2);
+        const stride = Math.sin(phase), bob = Math.abs(Math.sin(phase)) * h * .018;
+        ctx.fillStyle = "rgba(0,0,0,.65)"; ctx.beginPath(); ctx.ellipse(x, bottom, w * .72, h * .12, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.save();
+        ctx.translate(x, bottom - bob);
+        ctx.rotate(stride * (state === "chase" ? .055 : .025));
+        ctx.fillStyle = "#101210";
+        ctx.beginPath();
+        ctx.moveTo(-w * .34, -h * .61); ctx.lineTo(-w * .25, -h * .58);
+        ctx.lineTo(w * .28, -h * .59); ctx.lineTo(w * .36, -h * .12);
+        ctx.lineTo(w * .18, -h * .1); ctx.lineTo(w * .03, -h * .39);
+        ctx.lineTo(-w * .13, -h * .1); ctx.lineTo(-w * .34, -h * .12);
+        ctx.closePath(); ctx.fill();
+
+        ctx.save();
+        ctx.translate(-w * .2, -h * .52); ctx.rotate(stride * .16);
+        ctx.fillRect(-w * .12, 0, w * .2, h * .42);
+        ctx.fillRect(-w * .17, h * .34, w * .27, h * .07);
+        ctx.restore();
+        ctx.save();
+        ctx.translate(w * .2, -h * .52); ctx.rotate(-stride * .16);
+        ctx.fillRect(-w * .08, 0, w * .2, h * .42);
+        ctx.fillRect(-w * .1, h * .34, w * .27, h * .07);
+        ctx.restore();
+        ctx.save();
+        ctx.translate(-w * .18, -h * .12); ctx.rotate(-stride * .23);
+        ctx.fillRect(-w * .11, 0, w * .22, h * .3);
+        ctx.restore();
+        ctx.save();
+        ctx.translate(w * .18, -h * .12); ctx.rotate(stride * .23);
+        ctx.fillRect(-w * .11, 0, w * .22, h * .3);
+        ctx.restore();
+        ctx.fillStyle = "#171a17";
+        ctx.beginPath();
+        ctx.moveTo(-w * .3, -h * .89); ctx.lineTo(-w * .24, -h * .96);
+        ctx.lineTo(w * .19, -h * .94); ctx.lineTo(w * .33, -h * .84);
+        ctx.lineTo(w * .28, -h * .61); ctx.lineTo(-w * .28, -h * .61);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = state === "chase" ? "#ff5449" : "#db4339";
+        ctx.shadowColor = "#e84138"; ctx.shadowBlur = size * .08;
+        ctx.fillRect(-w * .19, -h * .81, w * .1, h * .035);
+        ctx.fillRect(w * .09, -h * .81, w * .1, h * .035);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+
+      function drawPlayerModel() {
+        const x = width * .5, scale = clamp(height / 620, .75, 1.4);
+        const stride = Math.sin(player.stride), oppositeStride = Math.sin(player.stride + Math.PI);
+        const bob = (Math.abs(stride) * player.moving * 4.5 + Math.sin(time * 2.2) * 1.2) * scale;
+        const lean = player.turnMotion * 8 * scale;
+        const shoulder = height - 155 * scale + bob + player.pitch * 18 * scale;
+        ctx.fillStyle = "rgba(0,0,0,.65)";
+        ctx.beginPath(); ctx.ellipse(x, height - 5, 47 * scale, 10 * scale, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.save(); ctx.translate(x, shoulder + 25 * scale); ctx.rotate(lean * .014 + stride * player.moving * .018);
+        drawLimb(-19 * scale, 63 * scale, -19 * scale + oppositeStride * 12 * scale * player.moving, 105 * scale, 19 * scale, 43 * scale, "#272722");
+        drawLimb(19 * scale, 63 * scale, 19 * scale + stride * 12 * scale * player.moving, 105 * scale, 19 * scale, 43 * scale, "#272722");
+        drawLimb(-27 * scale, 14 * scale, -36 * scale + oppositeStride * 12 * scale * player.moving, 49 * scale, 17 * scale, 39 * scale, "#514b3d");
+        drawLimb(27 * scale, 14 * scale, 37 * scale + stride * 9 * scale * player.moving, 47 * scale, 17 * scale, 39 * scale, "#514b3d");
+        ctx.fillStyle = "#473b2d"; ctx.fillRect(18 * scale, 3 * scale + stride * 2 * scale * player.moving, 18 * scale, 43 * scale);
+        ctx.fillStyle = "#81704b"; ctx.fillRect(20 * scale, 12 * scale, 14 * scale, 5 * scale);
+        ctx.fillStyle = "#171714"; ctx.fillRect(-31 * scale, 0, 62 * scale, 54 * scale);
+        const coat = ctx.createLinearGradient(-25 * scale, 0, 25 * scale, 0);
+        coat.addColorStop(0, "#282923"); coat.addColorStop(.48, "#49463a"); coat.addColorStop(1, "#252720");
+        ctx.fillStyle = coat; ctx.fillRect(-23 * scale, 3 * scale, 46 * scale, 49 * scale);
+        ctx.fillStyle = "#a18450"; ctx.fillRect(-21 * scale, 14 * scale, 42 * scale, 5 * scale);
+        ctx.fillStyle = "rgba(220,201,152,.4)";
+        ctx.fillRect(-2 * scale, 6 * scale, 2 * scale, 42 * scale);
+        ctx.fillRect(-24 * scale, 25 * scale, 48 * scale, 2 * scale);
+        ctx.fillStyle = "#353127"; ctx.fillRect(-14 * scale, 34 * scale, 12 * scale, 12 * scale);
+        ctx.fillRect(3 * scale, 34 * scale, 12 * scale, 12 * scale);
+        ctx.fillStyle = "#a18450"; ctx.fillRect(-27 * scale, 14 * scale, 54 * scale, 7 * scale);
+        const headSway = lean + stride * player.moving * 1.8 * scale;
+        ctx.fillStyle = "#1c1b17"; ctx.fillRect(-13 * scale + headSway, -23 * scale + player.pitch * 4 * scale, 26 * scale, 27 * scale);
+        ctx.fillStyle = "#34312a"; ctx.fillRect(-14 * scale + headSway, -26 * scale + player.pitch * 4 * scale, 28 * scale, 20 * scale);
+        ctx.fillStyle = "#777054"; ctx.fillRect(-3 * scale + lean, -17 * scale + player.pitch * 4 * scale, 6 * scale, 3 * scale);
+        ctx.fillStyle = "#a88751"; ctx.fillRect(-31 * scale + lean, -35 * scale + player.pitch * 4 * scale, 62 * scale, 7 * scale);
+        ctx.fillStyle = "#4e402d"; ctx.fillRect(-23 * scale + lean, -44 * scale + player.pitch * 4 * scale, 46 * scale, 10 * scale);
+        ctx.fillStyle = "#292a25"; ctx.fillRect(-14 * scale + lean, -42 * scale + player.pitch * 4 * scale, 28 * scale, 5 * scale);
+        ctx.fillStyle = "#c19a55"; ctx.fillRect(-10 * scale + lean, -41 * scale + player.pitch * 4 * scale, 6 * scale, 3 * scale);
+        ctx.fillRect(4 * scale + lean, -41 * scale + player.pitch * 4 * scale, 6 * scale, 3 * scale);
+        ctx.fillStyle = "#51422f"; ctx.fillRect(-7 * scale + lean, -31 * scale + player.pitch * 4 * scale, 14 * scale, 5 * scale);
+        ctx.restore();
+        if (thirdPerson) {
+          const handX = x + (37 + stride * 4 * player.moving) * scale;
+          const handY = shoulder + 25 * scale + (47 + Math.sin(player.stride) * 3 * player.moving) * scale;
+          drawHeldFlashlight(handX, handY, scale, true);
+        }
+      }
+
+      function drawLimb(x1, y1, x2, y2, widthAt, length, color) {
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(Math.atan2(x2 - x1, y2 - y1));
+        ctx.fillStyle = color;
+        ctx.fillRect(-widthAt / 2, -length * .12, widthAt, length);
+        ctx.fillStyle = "#514b3d";
+        ctx.fillRect(-widthAt * .56, length * .46, widthAt * 1.12, length * .4);
+        ctx.fillStyle = "#403c33";
+        ctx.beginPath(); ctx.ellipse(0, length * .91, widthAt * .6, widthAt * .4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+
+      function drawFlashlight() {
+        const scale = clamp(height / 620, .75, 1.4);
+        const sway = Math.sin(player.stride) * player.moving * 7 + player.turnMotion * 13;
+        const x = width * .82 + sway, y = height * .86 + Math.abs(Math.sin(player.stride)) * player.moving * 3 + player.pitch * height * .08;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(-.28 + player.turnMotion * .08 + player.pitch * .3 + Math.sin(player.stride) * player.moving * .025);
+        ctx.fillStyle = "#34312a";
+        ctx.beginPath(); ctx.moveTo(10, 76 * scale); ctx.lineTo(43 * scale, 71 * scale); ctx.lineTo(16 * scale, 17 * scale); ctx.lineTo(-11 * scale, 22 * scale); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#777054";
+        ctx.beginPath(); ctx.moveTo(9 * scale, 33 * scale); ctx.lineTo(20 * scale, 29 * scale); ctx.lineTo(25 * scale, 39 * scale); ctx.lineTo(12 * scale, 45 * scale); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#9a8160";
+        ctx.beginPath(); ctx.ellipse(2 * scale, 22 * scale, 10 * scale, 8 * scale, -.3, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        drawHeldFlashlight(x, y, scale, false);
+      }
+
+      function drawHeldFlashlight(x, y, scale, thirdPersonView) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate((thirdPersonView ? -.12 : -.28) + player.turnMotion * .08 + player.pitch * .3 + Math.sin(player.stride) * player.moving * .025);
+        ctx.fillStyle = "rgba(0,0,0,.5)";
+        ctx.beginPath(); ctx.ellipse(0, 43 * scale, 40 * scale, 9 * scale, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#514b3d";
+        ctx.beginPath(); ctx.moveTo(-18 * scale, 70 * scale); ctx.lineTo(-12 * scale, 30 * scale); ctx.lineTo(13 * scale, 19 * scale); ctx.lineTo(24 * scale, 60 * scale); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#292923";
+        ctx.beginPath(); ctx.moveTo(-24 * scale, 65 * scale); ctx.lineTo(-15 * scale, 3 * scale); ctx.lineTo(15 * scale, 3 * scale); ctx.lineTo(29 * scale, 65 * scale); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#48483d";
+        ctx.beginPath(); ctx.moveTo(-17 * scale, 18 * scale); ctx.lineTo(-11 * scale, -28 * scale); ctx.lineTo(11 * scale, -28 * scale); ctx.lineTo(19 * scale, 18 * scale); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "#171916"; ctx.fillRect(-14 * scale, -36 * scale, 29 * scale, 11 * scale);
+        if (player.flashlightOn && player.battery > 0) {
+          ctx.fillStyle = "rgba(233,205,132,.72)";
+          ctx.shadowColor = "#f0cf83"; ctx.shadowBlur = 14 * scale;
+          ctx.fillRect(-8 * scale, -34 * scale, 16 * scale, 5 * scale);
+          ctx.shadowBlur = 0;
+        }
+        ctx.fillStyle = "#554c3b"; ctx.fillRect(-7 * scale, 28 * scale, 14 * scale, 4 * scale);
+        ctx.restore();
+      }
+
+      function visibleToMonster() {
+        const d = distance(player, monster);
+        if (d > 9 || player.hidden) return false;
+        const angle = Math.atan2(player.y - monster.y, player.x - monster.x);
+        let delta = Math.atan2(Math.sin(angle - monster.angle), Math.cos(angle - monster.angle));
+        if (Math.abs(delta) > .72 && d > 3) return false;
+        const steps = Math.ceil(d * 8);
+        for (let i = 1; i < steps; i++) {
+          const t = i / steps;
+          if (wallAt(monster.x + (player.x - monster.x) * t, monster.y + (player.y - monster.y) * t)) return false;
+        }
+        return true;
+      }
+
+      function findPath(sx, sy, tx, ty) {
+        const start = [Math.floor(sx), Math.floor(sy)], target = [Math.floor(tx), Math.floor(ty)];
+        const queue = [start], parents = new Map(), key = (x, y) => `${x},${y}`;
+        parents.set(key(start[0], start[1]), "");
+        for (let i = 0; i < queue.length; i++) {
+          const [x, y] = queue[i];
+          if (x === target[0] && y === target[1]) break;
+          for (const [nx, ny] of [[x+1,y],[x-1,y],[x,y+1],[x,y-1]]) {
+            const k = key(nx, ny);
+            if (map[ny] && map[ny][nx] === 0 && !parents.has(k)) { parents.set(k, key(x, y)); queue.push([nx, ny]); }
+          }
+        }
+        let node = key(target[0], target[1]);
+        if (!parents.has(node)) return [];
+        const path = [];
+        while (node) {
+          const [x, y] = node.split(",").map(Number);
+          path.push([x + .5, y + .5]); node = parents.get(node);
+        }
+        return path.reverse().slice(1);
+      }
+
+      function updateMonster(dt) {
+        const d = distance(player, monster);
+        const seen = visibleToMonster();
+        if (seen) { monster.state = "chase"; monster.lastHeard = time + 4; }
+        else if (time < monster.lastHeard && !player.hidden) monster.state = "chase";
+        else monster.state = "patrol";
+        if (d < .55 && !player.hidden) { catchPlayer(); return; }
+        if (monster.state === "chase") {
+          if (time > monster.pathAt) { monster.path = findPath(monster.x, monster.y, player.x, player.y); monster.pathAt = time + .45; }
+          const target = monster.path && monster.path[0];
+          if (target) moveMonster(target[0], target[1], dt, 1.18);
+        } else {
+          const target = monster.waypoints[monster.patrolIndex];
+          if (Math.hypot(target[0] - monster.x, target[1] - monster.y) < .35) monster.patrolIndex = (monster.patrolIndex + 1) % monster.waypoints.length;
+          const next = monster.waypoints[monster.patrolIndex];
+          moveMonster(next[0], next[1], dt, .48);
+        }
+      }
+
+      function moveMonster(tx, ty, dt, speed) {
+        const dx = tx - monster.x, dy = ty - monster.y, d = Math.hypot(dx, dy);
+        if (d < .05) return;
+        const step = Math.min(d, speed * dt);
+        const nx = monster.x + dx / d * step, ny = monster.y + dy / d * step;
+        if (!wallAt(nx, monster.y)) monster.x = nx;
+        if (!wallAt(monster.x, ny)) monster.y = ny;
+        monster.angle = Math.atan2(dy, dx);
+      }
+
+      function getTarget() {
+        if (player.hidden) return { type: "hide" };
+        let nearest = null, nearestDistance = 1.9;
+        for (const chest of chests) {
+          if (chest.opened) continue;
+          const d = distance(player, chest);
+          if (d < nearestDistance) { nearest = { type: "chest", item: chest, distance: d }; nearestDistance = d; }
+        }
+        for (const hide of hides) {
+          const d = distance(player, hide);
+          if (d < nearestDistance) { nearest = { type: "hide", item: hide, distance: d }; nearestDistance = d; }
+        }
+        for (const drawer of drawers) {
+          if (drawer.searched) continue;
+          const d = distance(player, drawer);
+          if (d < nearestDistance) { nearest = { type: "drawer", item: drawer, distance: d }; nearestDistance = d; }
+        }
+        const d = distance(player, exitDoor);
+        if (d < nearestDistance) nearest = { type: "door", distance: d };
+        return nearest;
+      }
+
+      function interact() {
+        const target = getTarget();
+        if (!target) { showToast("NOTHING WITHIN REACH"); return; }
+        if (target.type === "hide") {
+          setHidden(!player.hidden);
+          return;
+        }
+        if (target.type === "chest") {
+          const chest = target.item; chest.opened = true;
+          if (chest.kind === "key") {
+            player.hasKey = true; $("keyStatus").textContent = "FOUND";
+            $("keyStep").classList.add("done"); $("objectiveTitle").textContent = "REACH THE EXIT";
+            $("objectiveCopy").textContent = "The key is yours. Find the marked exit chamber and get out.";
+            showToast("YOU FOUND THE EXIT KEY");
+          } else if (chest.kind === "coins") {
+            player.coins += chest.reward; showToast(`CHEST OPENED  +${chest.reward} COINS`);
+          } else showToast("EMPTY. JUST LIKE THE LAST ONE.");
+          updateHud(); return;
+        }
+        if (target.type === "drawer") {
+          const drawer = target.item;
+          if (drawer.battery && player.battery < 100) {
+            drawer.searched = true;
+            const recovered = Math.min(35, 100 - player.battery);
+            player.battery += recovered;
+            drawer.battery = false;
+            updateHud();
+            showToast(`SPARE BATTERY FOUND  +${Math.round(recovered)}%`);
+          } else if (drawer.battery) {
+            showToast("BATTERY FULL — COME BACK LATER");
+          } else {
+            drawer.searched = true;
+            showToast("NOTHING ELSE INSIDE");
+          }
+          return;
+        }
+        if (target.type === "door") {
+          if (!player.hasKey) { showToast("LOCKED. FIND THE EXIT KEY."); return; }
+          endGame(true);
+        }
+      }
+
+      function setHidden(hidden) {
+        player.hidden = hidden;
+        player.running = false;
+        $("hiddenNote").classList.toggle("show", hidden);
+        $("exitCabinet").hidden = !hidden;
+        $("game").classList.toggle("is-hidden", hidden);
+        if (hidden) showToast("YOU TUCK YOURSELF OUT OF SIGHT");
+        else showToast("YOU STEP BACK INTO THE TUNNEL");
+      }
+
+      function movePlayer(dt) {
+        const turn = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0);
+        const lookVertical = (keys.ArrowDown ? 1 : 0) - (keys.ArrowUp ? 1 : 0);
+        player.pitch = clamp(player.pitch + lookVertical * 1.25 * dt, -.5, .5);
+        player.turnMotion += (turn - player.turnMotion) * Math.min(1, dt * 7);
+        if (player.hidden) { player.moving = false; player.running = false; return; }
+        player.angle += turn * 1.9 * dt;
+        const forward = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0);
+        const strafe = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+        player.moving = !!(forward || strafe);
+        if (player.moving) player.stride += dt * (keys.ShiftLeft || keys.ShiftRight ? 13 : 8);
+        if (!player.moving) { player.running = false; return; }
+        const sprint = !!keys.ShiftLeft || !!keys.ShiftRight;
+        player.running = sprint;
+        const speed = sprint ? 2.55 : 1.45;
+        const magnitude = Math.hypot(forward, strafe) || 1;
+        const dx = (Math.cos(player.angle) * forward + Math.cos(player.angle + Math.PI / 2) * strafe) / magnitude * speed * dt;
+        const dy = (Math.sin(player.angle) * forward + Math.sin(player.angle + Math.PI / 2) * strafe) / magnitude * speed * dt;
+        if (!wallAt(player.x + dx + Math.sign(dx) * .17, player.y)) player.x += dx;
+        if (!wallAt(player.x, player.y + dy + Math.sign(dy) * .17)) player.y += dy;
+        walkClock += dt;
+        if (walkClock > (sprint ? .42 : .8)) {
+          walkClock = 0;
+          const hearingDistance = sprint ? 10 : 5.2;
+          if (distance(player, monster) < hearingDistance && monster.state !== "chase") monster.lastHeard = time + 3.2;
+        }
+      }
+
+      function catchPlayer() {
+        if (time - lastInteraction < 1.5 || finished) return;
+        lastInteraction = time;
+        player.lives--;
+        player.hidden = false;
+        $("hiddenNote").classList.remove("show");
+        if (player.lives <= 0) { updateHud(); endGame(false); return; }
+        player.x = activeCheckpoint.x; player.y = activeCheckpoint.y; player.angle = playerStart.angle;
+        monster.x = 21.5; monster.y = 5.5; monster.state = "patrol"; monster.lastHeard = 0; monster.patrolIndex = 0;
+        showToast(`CAUGHT — ${player.lives} ${player.lives === 1 ? "LIFE" : "LIVES"} LEFT`);
+        updateHud();
+      }
+
+      function updateHud() {
+        $("lives").innerHTML = Array.from({ length: 3 }, (_, i) => `<span class="heart ${i >= player.lives ? "lost" : ""}">♥</span>`).join("");
+        $("lives").setAttribute("aria-label", `${player.lives} lives`);
+        $("coins").textContent = String(player.coins).padStart(3, "0");
+        $("keyStatus").textContent = player.hasKey ? "FOUND" : "NOT FOUND";
+        $("keyStatus").style.color = player.hasKey ? "#a6c49a" : "";
+        const partySize = selectedMode === "solo" ? 1 : Number(selectedMode === "duo" ? 2 : selectedMode === "trio" ? 3 : 4);
+        $("teamStatus").textContent = `${partySize === 1 ? "1 / 1" : `1 / ${partySize}`} LOCAL`;
+        $("keyStep").classList.toggle("done", player.hasKey);
+        $("exitStep").classList.toggle("done", finished);
+        updateBatteryHud();
+      }
+
+      function updateBatteryHud() {
+        const battery = Math.round(player.battery);
+        $("batteryValue").textContent = `${battery}%`;
+        $("batteryFill").style.width = `${battery}%`;
+        $("batteryFill").classList.toggle("low", battery <= 20);
+        if (player.battery <= 0 && player.flashlightOn) {
+          player.flashlightOn = false;
+          showToast("FLASHLIGHT BATTERY EMPTY — SEARCH DRAWERS");
+        }
+        const button = $("flashlightToggle");
+        button.disabled = battery <= 0;
+        button.setAttribute("aria-pressed", String(player.flashlightOn));
+        button.textContent = battery <= 0 ? "LIGHT: EMPTY [F]" : `LIGHT: ${player.flashlightOn ? "ON" : "OFF"} [F]`;
+      }
+
+      function toggleFlashlight() {
+        if (player.battery <= 0) {
+          player.flashlightOn = false;
+          updateBatteryHud();
+          showToast("NO BATTERY — SEARCH A DRAWER");
+          return;
+        }
+        player.flashlightOn = !player.flashlightOn;
+        updateBatteryHud();
+        showToast(`FLASHLIGHT ${player.flashlightOn ? "ON" : "OFF"}`);
+      }
+
+      function updatePrompt() {
+        const target = getTarget();
+        const prompt = $("prompt"), reticle = $("reticle");
+        const aimY = height / 2 + player.pitch * height * .62;
+        reticle.style.top = `${aimY}px`;
+        prompt.style.top = `${aimY + 29}px`;
+        if (!target) { prompt.classList.remove("show"); reticle.classList.remove("active"); return; }
+        let text = "";
+        if (target.type === "hide") text = player.hidden ? '<span class="keycap">E</span> EXIT CABINET' : '<span class="keycap">E</span> HIDE';
+        else if (target.type === "chest") text = `<span class="keycap">E</span> OPEN ${target.item.kind === "key" ? "CHEST" : "CHEST"}`;
+        else if (target.type === "drawer") text = '<span class="keycap">E</span> SEARCH DRAWER';
+        else text = `<span class="keycap">E</span> ${player.hasKey ? "UNLOCK EXIT" : "LOCKED — FIND THE KEY"}`;
+        prompt.innerHTML = text; prompt.classList.add("show"); reticle.classList.add("active");
+      }
+
+      function showToast(message) {
+        const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 2300);
+      }
+
+      function setMapVisible(visible) {
+        $("mapPanel").hidden = !visible;
+        $("mapToggle").setAttribute("aria-expanded", String(visible));
+        $("mapToggle").textContent = `MAP: ${visible ? "ON" : "OFF"} [M]`;
+      }
+
+      function setChatVisible(visible) {
+        $("chatPanel").hidden = !visible;
+        $("chatToggle").setAttribute("aria-expanded", String(visible));
+        $("chatToggle").textContent = visible ? "CLOSE CHAT" : "CHAT";
+        if (visible) setMapVisible(false);
+      }
+
+      if (window.matchMedia("(pointer: coarse)").matches) setMapVisible(false);
+
+      function addChatMessage(name, message, system = false) {
+        const item = document.createElement("li");
+        item.className = `chat-message${system ? " system" : ""}`;
+        if (name) {
+          const author = document.createElement("span");
+          author.className = "chat-name";
+          author.textContent = `${name}:`;
+          item.append(author);
+        }
+        item.append(document.createTextNode(message));
+        const messages = $("chatMessages");
+        messages.append(item);
+        while (messages.children.length > 40) messages.firstElementChild.remove();
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      function updateThreat() {
+        const d = distance(player, monster), active = monster.state === "chase" && !player.hidden;
+        $("threat").classList.toggle("visible", active);
+        $("threatFill").style.width = `${clamp((1 - d / 10) * 100, 8, 100)}%`;
+        $("threatDistance").textContent = d < 2.5 ? "VERY NEAR" : d < 5 ? "CLOSING IN" : "NEAR";
+        $("threatHint").textContent = player.running ? "Your footsteps carry through the cave." : "Break its line of sight. Find a hiding place.";
+        updateChaseAudio(active, d);
+      }
+
+      function updateChaseAudio(active, d) {
+        if (!audioContext || !chaseGain || !chaseTone || audioContext.state !== "running") return;
+        const now = audioContext.currentTime;
+        if (active !== lastChaseActive) {
+          chaseGain.gain.setTargetAtTime(active ? .2 : 0, now, active ? .35 : .65);
+          lastChaseActive = active;
+        }
+        if (active && time - audioPitchAt > .15) {
+          chaseTone.frequency.setTargetAtTime(38 + clamp(9 - d, 0, 9) * 2.1, now, .4);
+          audioPitchAt = time;
+        }
+      }
+
+      function startChaseAudio() {
+        if (!window.AudioContext) return;
+        if (!audioContext) {
+          audioContext = new AudioContext();
+          chaseTone = audioContext.createOscillator();
+          const filter = audioContext.createBiquadFilter();
+          chaseGain = audioContext.createGain();
+          chaseTone.type = "triangle";
+          chaseTone.frequency.value = 38;
+          filter.type = "lowpass";
+          filter.frequency.value = 105;
+          chaseGain.gain.value = 0;
+          chaseTone.connect(filter);
+          filter.connect(chaseGain);
+          chaseGain.connect(audioContext.destination);
+          chaseTone.start();
+        }
+        if (audioContext.state === "suspended") audioContext.resume();
+      }
+
+      function updateRegion() {
+        const x = player.x, y = player.y;
+        let text = "ENTRANCE TUNNELS";
+        if (x > 12 && y < 9) text = "THE OLD GALLERY";
+        else if (y > 12 && x < 9) text = "LOWER PASSAGE";
+        else if (y > 12 && x > 12 && y < 22) text = "THE SUNKEN HALL";
+        else if (y > 21) text = "EXIT CHAMBER";
+        else if (x > 8 && y > 12) text = "CONNECTING TUNNEL";
+        $("region").textContent = text;
+        $("mapRegion").textContent = text.replace("THE ", "").replace(" TUNNELS", "");
+        const checkpoint = checkpoints.find((spot) => spot.region === text);
+        if (checkpoint && checkpoint !== activeCheckpoint) {
+          activeCheckpoint = checkpoint;
+          showToast(`CHECKPOINT REACHED — ${text}`);
+        }
+      }
+
+      function endGame(escaped) {
+        finished = true; releaseMouseLook();
+        $("endScreen").classList.remove("off");
+        $("endScreen").classList.toggle("ending", true);
+        $("endKicker").textContent = escaped ? "EXPEDITION COMPLETE" : "EXPEDITION FAILED";
+        $("endTitle").innerHTML = escaped ? "YOU ESCAPED<span>THE HOLLOW</span>" : "LOST IN<span>THE DARK</span>";
+        $("endCopy").textContent = escaped
+          ? `You made it out with ${player.coins} coins and ${player.lives} ${player.lives === 1 ? "life" : "lives"} remaining.`
+          : "The cave has claimed its last life. The exit is still down there.";
+      }
+
+      function resetGame(lobbyType = "solo", lobbyCode = "") {
+        for (const chest of chests) chest.opened = false;
+        for (const drawer of drawers) { drawer.searched = false; drawer.battery = true; }
+        for (const row of explored) row.fill(false);
+        Object.assign(player, { x: playerStart.x, y: playerStart.y, angle: 0, lives: 3, coins: 0, hasKey: false, hidden: false, running: false, moving: false, battery: 100, flashlightOn: true, stride: 0, turnMotion: 0, pitch: 0 });
+        Object.assign(monster, { x: 21.5, y: 5.5, angle: Math.PI, state: "patrol", lastHeard: 0, pathAt: 0, patrolIndex: 0, path: [] });
+        time = 0; finished = false; paused = false; started = true; walkClock = 0; activeCheckpoint = checkpoints[0];
+        $("startScreen").classList.add("off"); $("endScreen").classList.add("off"); $("pauseLabel").classList.remove("show");
+        $("hiddenNote").classList.remove("show"); $("exitCabinet").hidden = true; $("game").classList.remove("is-hidden");
+        $("objectiveTitle").textContent = "FIND THE EXIT KEY";
+        $("objectiveCopy").textContent = "Search the chests for the key and drawers for batteries. Something is listening.";
+        $("keyStep").classList.remove("done"); $("exitStep").classList.remove("done");
+        $("cameraToggle").textContent = `CAMERA: ${thirdPerson ? "THIRD" : "FIRST"} PERSON`;
+        $("game").classList.toggle("third-person", thirdPerson);
+        updateHud(); startChaseAudio(); requestMouseLook();
+        if (lobbyType !== "solo") {
+          const label = lobbyType === "private" ? `PRIVATE LOBBY ${lobbyCode}` : "PUBLIC MATCHMAKING";
+          showToast(`${label} — LOCAL DEMO ONLY, NO NETWORK SERVER`);
+        }
+      }
+
+      function requestMouseLook() {
+        if (!canvas.requestPointerLock) return;
+        try {
+          const request = canvas.requestPointerLock();
+          if (request && typeof request.catch === "function") {
+            request.catch(() => showToast("MOUSE LOOK UNAVAILABLE — USE ← / →"));
+          }
+        } catch {
+          showToast("MOUSE LOOK UNAVAILABLE — USE ← / →");
+        }
+      }
+
+      function releaseMouseLook() {
+        mouseLookActive = false;
+        if (document.pointerLockElement === canvas) document.exitPointerLock?.();
+      }
+
+      function frame(timestamp) {
+        const dt = Math.min(.05, (timestamp - lastTime) / 1000 || 0); lastTime = timestamp;
+        if (started && !paused && !finished) {
+          time += dt;
+          if (!player.hidden && player.flashlightOn && player.battery > 0) {
+            player.battery = Math.max(0, player.battery - dt * .34);
+            batteryHudClock += dt;
+            if (batteryHudClock >= .2 || player.battery === 0) { batteryHudClock = 0; updateBatteryHud(); }
+          }
+          movePlayer(dt);
+          updateMonster(dt);
+          updateThreat();
+          updatePrompt();
+          updateRegion();
+        }
+        renderWorld();
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+
+      $("startButton").addEventListener("click", () => resetGame(selectedMode));
+      $("restartButton").addEventListener("click", () => resetGame(selectedMode));
+      document.querySelectorAll(".mode-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedMode = button.dataset.mode;
+          document.querySelectorAll(".mode-button").forEach((option) => option.classList.toggle("selected", option === button));
+          $("startButton").textContent = selectedMode === "solo" ? "PLAY SOLO" : `PLAY ${selectedMode.toUpperCase()} (LOCAL)`;
+          $("lobbyNote").textContent = selectedMode === "solo"
+            ? "Solo expedition selected. Online matchmaking requires a game server."
+            : `${selectedMode.toUpperCase()} party selected. This browser preview runs locally; no network server is connected.`;
+        });
+      });
+      $("randomButton").addEventListener("click", () => resetGame("public"));
+      $("createLobbyButton").addEventListener("click", () => {
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const code = Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+        resetGame("private", code);
+      });
+      $("joinLobbyButton").addEventListener("click", () => {
+        $("lobbyCodeRow").hidden = false;
+        $("lobbyCode").focus();
+      });
+      $("submitLobbyCode").addEventListener("click", () => {
+        const code = $("lobbyCode").value.trim().toUpperCase();
+        if (!/^[A-Z0-9]{4,8}$/.test(code)) {
+          $("lobbyNote").textContent = "Enter a valid 4–8 character lobby code.";
+          $("lobbyCode").focus();
+          return;
+        }
+        $("lobbyNote").textContent = "Lobby codes cannot be verified in this standalone preview because no multiplayer server is connected.";
+      });
+      $("chatInput").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          $("chatForm").requestSubmit();
+        }
+      });
+      document.querySelectorAll("#touchControls [data-key]").forEach((button) => {
+        const code = button.dataset.key;
+        button.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          button.setPointerCapture(event.pointerId);
+          keys[code] = true;
+        });
+        const release = (event) => {
+          event.preventDefault();
+          keys[code] = false;
+        };
+        button.addEventListener("pointerup", release);
+        button.addEventListener("pointercancel", release);
+        button.addEventListener("lostpointercapture", () => { keys[code] = false; });
+      });
+      $("touchControls").querySelector("[data-action='interact']").addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        if (started && !paused && !finished && time - lastInteraction > .22) {
+          lastInteraction = time;
+          interact();
+        }
+      });
+      window.addEventListener("blur", () => { keys = Object.create(null); });
+      canvas.addEventListener("pointerdown", (event) => {
+        if (event.pointerType !== "touch" || !started || paused || finished) return;
+        touchLookPointer = event.pointerId;
+        touchLookX = event.clientX;
+        touchLookY = event.clientY;
+        canvas.setPointerCapture(event.pointerId);
+      });
+      canvas.addEventListener("pointermove", (event) => {
+        if (event.pointerId !== touchLookPointer || paused || finished) return;
+        const dx = event.clientX - touchLookX, dy = event.clientY - touchLookY;
+        player.angle += dx * .006;
+        player.turnMotion = clamp(player.turnMotion + dx * .003, -1, 1);
+        player.pitch = clamp(player.pitch + dy * .004, -.5, .5);
+        touchLookX = event.clientX;
+        touchLookY = event.clientY;
+      });
+      const stopTouchLook = (event) => {
+        if (event.pointerId === touchLookPointer) touchLookPointer = null;
+      };
+      canvas.addEventListener("pointerup", stopTouchLook);
+      canvas.addEventListener("pointercancel", stopTouchLook);
+      $("cameraToggle").addEventListener("click", () => {
+        thirdPerson = !thirdPerson;
+        $("game").classList.toggle("third-person", thirdPerson);
+        $("cameraToggle").textContent = `CAMERA: ${thirdPerson ? "THIRD" : "FIRST"} PERSON`;
+      });
+      $("mapToggle").addEventListener("click", () => {
+        if (!$("chatPanel").hidden) setChatVisible(false);
+        setMapVisible($("mapPanel").hidden);
+      });
+      $("chatToggle").addEventListener("click", () => setChatVisible($("chatPanel").hidden));
+      $("chatForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const input = $("chatInput");
+        const message = input.value.trim();
+        if (!message) return;
+        addChatMessage("YOU", message);
+        input.value = "";
+        input.focus();
+      });
+      $("flashlightToggle").addEventListener("click", toggleFlashlight);
+      $("exitCabinet").addEventListener("click", () => {
+        if (player.hidden && started && !paused) setHidden(false);
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.target instanceof HTMLElement && event.target.matches("input, textarea, [contenteditable='true']")) return;
+        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(event.code)) event.preventDefault();
+        keys[event.code] = true;
+        if (event.code === "KeyM" && !event.repeat && started && !paused && !finished) $("mapToggle").click();
+        if (event.code === "KeyF" && !event.repeat && started && !paused && !finished) toggleFlashlight();
+        if (event.code === "KeyE" && started && !paused && !finished && time - lastInteraction > .22) { lastInteraction = time; interact(); }
+        if (event.code === "Escape" && started && !finished) {
+          paused = !paused; $("pauseLabel").classList.toggle("show", paused);
+          if (paused) releaseMouseLook();
+          else requestMouseLook();
+        }
+        if ((event.code === "Enter" || event.code === "Space") && finished) resetGame();
+      });
+      window.addEventListener("keyup", (event) => { keys[event.code] = false; });
+      document.addEventListener("mousemove", (event) => {
+        if (document.pointerLockElement === canvas && started && !paused) {
+          player.angle += event.movementX * .0022;
+          player.turnMotion = clamp(player.turnMotion + event.movementX * .0008, -1, 1);
+          player.pitch = clamp(player.pitch + event.movementY * .0018, -.5, .5);
+        }
+      });
+      canvas.addEventListener("click", () => {
+        if (started && !paused && !finished && document.pointerLockElement !== canvas) requestMouseLook();
+      });
+      document.addEventListener("pointerlockchange", () => {
+        if (document.pointerLockElement === canvas) {
+          mouseLookActive = true;
+          return;
+        }
+        if (mouseLookActive && started && !finished && !paused) {
+          mouseLookActive = false;
+          paused = true; $("pauseLabel").classList.add("show");
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
