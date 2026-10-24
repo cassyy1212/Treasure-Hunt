@@ -41,7 +41,13 @@
 
     .hud { position: absolute; z-index: 4; inset: 0; pointer-events: none; }
     .panel { background: var(--panel); border: 1px solid var(--line); box-shadow: 0 12px 38px rgba(0,0,0,.24); backdrop-filter: blur(7px); }
-    .status { position: absolute; left: 32px; bottom: 30px; width: 218px; padding: 15px 17px 14px; }
+    .status { position: absolute; left: 32px; bottom: 30px; width: 218px; padding: 15px 17px 14px; pointer-events: auto; }
+    .hud-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .hud-card-toggle { flex: 0 0 auto; padding: 4px 6px; border: 1px solid rgba(233,228,217,.16); background: rgba(255,255,255,.035); color: #bcbdb6; font-size: 7px; letter-spacing: .08em; cursor: pointer; pointer-events: auto; }
+    .hud-card-toggle:hover { border-color: var(--amber); color: var(--amber); }
+    .status.collapsed { width: auto; min-width: 152px; }
+    .objective.collapsed { width: auto; min-width: 180px; }
+    .hud-card-content[hidden] { display: none; }
     .eyebrow { color: var(--muted); font-size: 8px; letter-spacing: .2em; }
     .lives { display: flex; align-items: center; gap: 7px; margin: 10px 0 14px; }
     .heart { color: var(--red); font-size: 17px; line-height: 1; text-shadow: 0 0 12px rgba(219,81,72,.3); }
@@ -57,7 +63,7 @@
     .battery-fill.low { background: #db5148; box-shadow: 0 0 10px rgba(219,81,72,.4); }
     .battery-caption { display: flex; justify-content: space-between; margin-top: 6px; color: #9a9e98; font-size: 8px; }
 
-    .objective { position: absolute; top: 99px; left: 32px; width: 228px; padding: 15px 17px; }
+    .objective { position: absolute; top: 99px; left: 32px; width: 228px; padding: 15px 17px; pointer-events: auto; }
     .objective-title { margin: 8px 0 10px; font: 700 18px/1 "Barlow Condensed", sans-serif; letter-spacing: .06em; }
     .objective-copy { color: #a7aaa3; font-size: 9px; line-height: 1.8; }
     .objective-step { display: flex; align-items: center; gap: 8px; margin-top: 11px; font-size: 9px; color: #a7aaa3; }
@@ -179,13 +185,25 @@
     .private-setup-note { margin: 9px 0 12px; color: #92968f; font-size: 8px; line-height: 1.7; }
     .private-setup-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .private-setup-actions .primary, .private-setup-actions .secondary { width: 100%; min-width: 0; }
+    .private-setup.joining .private-mode-grid, .private-setup.joining #confirmPrivateLobby { display: none; }
     .lobby-code input { min-width: 0; flex: 1; padding: 9px; border: 1px solid rgba(255,255,255,.17); outline: none; background: rgba(0,0,0,.38); color: var(--paper); font: 10px "DM Mono",monospace; letter-spacing: .12em; text-transform: uppercase; }
     .lobby-code input:focus { border-color: var(--amber); }
     .lobby-note { margin: 12px auto 0; color: #797d76; font-size: 8px; line-height: 1.7; }
     .screen.ending { background: rgba(5,7,6,.89); }
     .screen.ending h1 { font-size: clamp(48px, 8vw, 68px); }
-    .pause-label { display: none; position: absolute; z-index: 6; inset: 0; place-items: center; background: rgba(0,0,0,.3); font: 800 26px "Barlow Condensed", sans-serif; letter-spacing: .2em; }
-    .pause-label.show { display: grid; }
+    .pause-toggle { position: absolute; z-index: 5; top: 24px; right: 32px; padding: 9px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--paper); font-size: 8px; letter-spacing: .1em; cursor: pointer; pointer-events: auto; }
+    .pause-toggle[hidden] { display: none; }
+    .pause-overlay { display: none; position: absolute; z-index: 9; inset: 0; place-items: center; padding: 20px; background: rgba(3,5,5,.84); backdrop-filter: blur(8px); pointer-events: auto; }
+    .pause-overlay.show { display: grid; }
+    .pause-card { width: min(420px, 100%); max-height: 100%; overflow-y: auto; padding: 24px; border: 1px solid rgba(226,173,88,.32); background: rgba(12,15,14,.97); box-shadow: 0 20px 60px rgba(0,0,0,.55); }
+    .pause-title { margin: 0 0 18px; color: var(--amber); font: 800 34px/.95 "Barlow Condensed",sans-serif; letter-spacing: .12em; text-align: center; }
+    .settings-title { margin: 18px 0 12px; color: #adb0a8; font-size: 9px; letter-spacing: .18em; }
+    .setting-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 14px; margin: 14px 0; color: #d5d1c6; font-size: 9px; }
+    .setting-row output { color: var(--amber); font-size: 9px; }
+    .setting-row input { grid-column: 1 / -1; width: 100%; accent-color: var(--amber); cursor: pointer; }
+    .pause-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 20px; }
+    .pause-actions button { min-height: 42px; cursor: pointer; }
+    .pause-actions .leave-game { border: 1px solid rgba(219,81,72,.48); background: rgba(219,81,72,.12); color: #ef9488; font-size: 9px; letter-spacing: .08em; }
 
     @media (max-width: 700px) {
       .topbar { padding: 19px 17px; }
@@ -203,6 +221,7 @@
       .bottom-right { right: 15px; bottom: 16px; font-size: 7px; }
       .compass { top: 21px; }
       .controls { gap: 10px; flex-wrap: wrap; }
+      .pause-toggle { top: 76px; right: 15px; }
     }
     @media (max-height: 720px) {
       .screen-card { padding: 12px 0; }
@@ -217,7 +236,9 @@
     }
     @media (pointer: coarse) {
       .touch-controls { display: block; }
-      .status { left: 15px; bottom: 180px; width: 165px; padding: 10px 12px; }
+      .status { top: 160px; right: 15px; bottom: auto; left: auto; width: 165px; padding: 10px 12px; }
+      .status.collapsed { min-width: 132px; }
+      .objective.collapsed { min-width: 160px; }
       .status .stat-row { font-size: 8px; }
       .status .lives { margin: 7px 0 9px; }
       .status .divider { margin: 8px 0; }
@@ -241,11 +262,16 @@
 
     <section class="hud" aria-label="Game status">
       <div class="objective panel">
-        <div class="eyebrow">CURRENT OBJECTIVE</div>
-        <div class="objective-title" id="objectiveTitle">FIND THE EXIT KEY</div>
-        <div class="objective-copy" id="objectiveCopy">Search the chests for the key and drawers for batteries. Something is listening.</div>
-        <div class="objective-step" id="keyStep"><span class="step-dot">1</span><span>Recover the hidden key</span></div>
-        <div class="objective-step" id="exitStep"><span class="step-dot">2</span><span>Reach the locked exit</span></div>
+        <div class="hud-card-heading">
+          <div class="eyebrow">CURRENT OBJECTIVE</div>
+          <button class="hud-card-toggle" type="button" data-toggle-card="objectiveContent" aria-expanded="true">HIDE</button>
+        </div>
+        <div class="hud-card-content" id="objectiveContent">
+          <div class="objective-title" id="objectiveTitle">FIND THE EXIT KEY</div>
+          <div class="objective-copy" id="objectiveCopy">Search the chests for the key and drawers for batteries. Something is listening.</div>
+          <div class="objective-step" id="keyStep"><span class="step-dot">1</span><span>Recover the hidden key</span></div>
+          <div class="objective-step" id="exitStep"><span class="step-dot">2</span><span>Reach the locked exit</span></div>
+        </div>
       </div>
       <div class="threat" id="threat">
         <div class="threat-head"><span>IT HEARD YOU</span><span id="threatDistance">NEAR</span></div>
@@ -273,6 +299,7 @@
         </form>
       </div>
       <button class="chat-toggle" id="chatToggle" type="button" aria-expanded="false">CHAT</button>
+      <button class="pause-toggle" id="pauseToggle" type="button" aria-label="Pause game" hidden>PAUSE [ESC]</button>
       <div class="touch-controls" id="touchControls" aria-label="Touch controls">
         <div class="touch-joystick" id="touchJoystick" role="application" aria-label="Movement joystick">
           <div class="joystick-knob" id="joystickKnob"></div>
@@ -289,20 +316,46 @@
       <button class="exit-cabinet" id="exitCabinet" type="button" hidden>EXIT CABINET</button>
       <div class="toast" id="toast"></div>
       <div class="panel status">
-        <div class="eyebrow">EXPEDITION STATUS</div>
-        <div class="lives" id="lives" aria-label="3 lives"></div>
-        <div class="divider"></div>
-        <div class="stat-row"><span class="stat-label">COINS</span><span class="stat-value"><span class="coin-icon">◆</span> <span id="coins">000</span></span></div>
-        <div class="stat-row"><span class="stat-label">EXIT KEY</span><span class="stat-value" id="keyStatus">NOT FOUND</span></div>
-        <div class="stat-row"><span class="stat-label">PARTY</span><span class="stat-value" id="teamStatus">1 / 1 LOCAL</span></div>
-        <div class="divider"></div>
-        <div class="stat-row"><span class="stat-label">FLASHLIGHT</span><span class="stat-value" id="batteryValue">100%</span></div>
-        <div class="battery-meter"><div class="battery-fill" id="batteryFill"></div></div>
+        <div class="hud-card-heading">
+          <div class="eyebrow">EXPEDITION STATUS</div>
+          <button class="hud-card-toggle" type="button" data-toggle-card="statusContent" aria-expanded="true">HIDE</button>
+        </div>
+        <div class="hud-card-content" id="statusContent">
+          <div class="lives" id="lives" aria-label="3 lives"></div>
+          <div class="divider"></div>
+          <div class="stat-row"><span class="stat-label">COINS</span><span class="stat-value"><span class="coin-icon">◆</span> <span id="coins">000</span></span></div>
+          <div class="stat-row"><span class="stat-label">EXIT KEY</span><span class="stat-value" id="keyStatus">NOT FOUND</span></div>
+          <div class="stat-row"><span class="stat-label">PARTY</span><span class="stat-value" id="teamStatus">1 / 1 LOCAL</span></div>
+          <div class="divider"></div>
+          <div class="stat-row"><span class="stat-label">FLASHLIGHT</span><span class="stat-value" id="batteryValue">100%</span></div>
+          <div class="battery-meter"><div class="battery-fill" id="batteryFill"></div></div>
+        </div>
       </div>
       <div class="bottom-right"><b>W A S D</b> &nbsp; MOVE<br><b>MOUSE / ARROWS</b> &nbsp; LOOK &nbsp;·&nbsp; <b>E</b> INTERACT<br><b>F</b> &nbsp; LIGHT &nbsp;·&nbsp; <b>SHIFT</b> SPRINT</div>
     </section>
     <div class="hiding-overlay" aria-hidden="true"></div>
-    <div class="pause-label" id="pauseLabel">PAUSED</div>
+    <section class="pause-overlay" id="pauseLabel" aria-label="Game paused" aria-hidden="true">
+      <div class="pause-card">
+        <h2 class="pause-title">EXPEDITION PAUSED</h2>
+        <div class="settings-title">SETTINGS</div>
+        <label class="setting-row" for="volumeSetting">
+          <span>GAME VOLUME</span><output id="volumeValue" for="volumeSetting">70%</output>
+          <input id="volumeSetting" type="range" min="0" max="100" value="70">
+        </label>
+        <label class="setting-row" for="sensitivitySetting">
+          <span>LOOK SENSITIVITY</span><output id="sensitivityValue" for="sensitivitySetting">100%</output>
+          <input id="sensitivitySetting" type="range" min="30" max="200" value="100">
+        </label>
+        <label class="setting-row" for="brightnessSetting">
+          <span>BRIGHTNESS</span><output id="brightnessValue" for="brightnessSetting">100%</output>
+          <input id="brightnessSetting" type="range" min="60" max="150" value="100">
+        </label>
+        <div class="pause-actions">
+          <button class="primary" id="resumeButton" type="button">RESUME</button>
+          <button class="leave-game" id="leaveButton" type="button">LEAVE GAME</button>
+        </div>
+      </div>
+    </section>
 
     <section class="screen" id="startScreen">
       <div class="screen-card">
@@ -368,6 +421,7 @@
       const mapCanvas = document.getElementById("mapCanvas");
       const mapCtx = mapCanvas.getContext("2d");
       const $ = (id) => document.getElementById(id);
+      const multiplayerServerUrl = "wss://treasure-hunt-multiplayer.onrender.com/ws";
       const stoneTexture = createStoneTexture();
       const tileSize = 27;
       const mapSize = 27;
@@ -422,7 +476,10 @@
       const monster = { x: 21.5, y: 5.5, angle: Math.PI, state: "patrol", lastHeard: 0, pathAt: 0, waypoints: [[20.5,3.6],[22.5,6.5],[18.3,6.5],[18.3,14.5],[21.4,15.5],[18.2,19.2],[15.2,14.5],[4.2,15.2],[4.3,18.5],[4.3,4.2]], patrolIndex: 0 };
       let started = false, paused = false, finished = false, time = 0, lastTime = 0, toastTimer = 0, walkClock = 0, batteryHudClock = 0;
       let width = 0, height = 0, zBuffer = [], keys = Object.create(null), lastInteraction = 0, touchLookPointer = null, touchLookX = 0, touchLookY = 0, touchJoystickPointer = null, touchMoveX = 0, touchMoveY = 0;
-      let thirdPerson = false, selectedMode = "solo", selectedPrivateMode = "solo", pendingLobbyCode = "", mouseLookActive = false, audioContext = null, chaseGain = null, chaseTone = null, lastChaseActive = false, audioPitchAt = 0;
+      let thirdPerson = false, selectedMode = "solo", selectedPrivateMode = "solo", pendingLobbyCode = "", mouseLookActive = false, audioContext = null, chaseGain = null, chaseTone = null, masterVolumeGain = null, lastChaseActive = false, audioPitchAt = 0, lookSensitivity = 1, gameVolume = .7, gameBrightness = 1;
+      let networkSocket = null, networkPlayerId = "", networkPlayerName = "", networkRoomMode = "", networkActive = false, networkSyncClock = 0;
+      const networkPlayers = new Map();
+      const networkWorld = { openedChests: new Set(), searchedDrawers: new Set(), hasKey: false };
       const fov = Math.PI / 2.9;
       const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
       const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -709,6 +766,9 @@
         for (const drawer of drawers) objects.push({ ...drawer, type: "drawer" });
         objects.push({ ...exitDoor, type: "door" });
         if (!player.hidden) objects.push({ ...monster, type: "monster" });
+        for (const remote of networkPlayers.values()) {
+          if (!remote.hidden) objects.push({ ...remote, type: "network-player" });
+        }
         objects.sort((a, b) => distance(player, b) - distance(player, a));
         for (const obj of objects) {
           const dx = obj.x - cameraPosition.x, dy = obj.y - cameraPosition.y;
@@ -725,6 +785,7 @@
           else if (obj.type === "hide") drawCabinet(screenX, bottom, size);
           else if (obj.type === "drawer") drawDrawer(screenX, bottom, size, obj);
           else if (obj.type === "door") drawDoor(screenX, bottom, size);
+          else if (obj.type === "network-player") drawNetworkPlayer(screenX, bottom, size, obj.name);
           else drawMonster(screenX, bottom, size, obj.state);
         }
       }
@@ -820,6 +881,27 @@
         ctx.fillRect(w * .09, -h * .81, w * .1, h * .035);
         ctx.shadowBlur = 0;
         ctx.restore();
+      }
+
+      function drawNetworkPlayer(x, bottom, size, name) {
+        const w = size * .23, h = size * .58;
+        ctx.fillStyle = "rgba(0,0,0,.48)";
+        ctx.beginPath(); ctx.ellipse(x, bottom, w * 1.2, h * .1, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#3d473a";
+        ctx.fillRect(x - w * .42, bottom - h * .58, w * .84, h * .43);
+        ctx.fillStyle = "#80704d";
+        ctx.fillRect(x - w * .48, bottom - h * .6, w * .96, h * .08);
+        ctx.fillStyle = "#171916";
+        ctx.fillRect(x - w * .34, bottom - h * .88, w * .68, h * .29);
+        ctx.fillStyle = "#b28a4d";
+        ctx.fillRect(x - w * .51, bottom - h * .94, w * 1.02, h * .07);
+        ctx.fillStyle = "#d4c49e";
+        ctx.font = `bold ${clamp(size * .065, 9, 14)}px "DM Mono", monospace`;
+        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(0,0,0,.9)";
+        ctx.shadowBlur = 5;
+        ctx.fillText(name, x, bottom - h * 1.02);
+        ctx.shadowBlur = 0;
       }
 
       function drawPlayerModel() {
@@ -1014,6 +1096,10 @@
           return;
         }
         if (target.type === "chest") {
+          if (networkActive) {
+            sendNetwork({ type: "interact", target: "chest", index: chests.indexOf(target.item) });
+            return;
+          }
           const chest = target.item; chest.opened = true;
           if (chest.kind === "key") {
             player.hasKey = true; $("keyStatus").textContent = "FOUND";
@@ -1027,6 +1113,10 @@
         }
         if (target.type === "drawer") {
           const drawer = target.item;
+          if (networkActive) {
+            sendNetwork({ type: "interact", target: "drawer", index: drawers.indexOf(drawer) });
+            return;
+          }
           if (drawer.battery && player.battery < 100) {
             drawer.searched = true;
             const recovered = Math.min(35, 100 - player.battery);
@@ -1172,6 +1262,232 @@
         if (visible) setMapVisible(false);
       }
 
+      function sendNetwork(message) {
+        if (!networkActive || !networkSocket || networkSocket.readyState !== WebSocket.OPEN) return false;
+        networkSocket.send(JSON.stringify(message));
+        return true;
+      }
+
+      function setNetworkChatLabel(connected) {
+        $("chatPanel").querySelector(".chat-local").textContent = connected ? "ONLINE PARTY" : "LOCAL PREVIEW";
+      }
+
+      function applyRoomWorld(world = {}) {
+        networkWorld.openedChests = new Set(world.openedChests || []);
+        networkWorld.searchedDrawers = new Set(world.searchedDrawers || []);
+        networkWorld.hasKey = !!world.hasKey;
+        for (const index of networkWorld.openedChests) {
+          if (chests[index]) chests[index].opened = true;
+        }
+        for (const index of networkWorld.searchedDrawers) {
+          if (drawers[index]) {
+            drawers[index].searched = true;
+            drawers[index].battery = false;
+          }
+        }
+        if (networkWorld.hasKey) {
+          player.hasKey = true;
+          $("keyStatus").textContent = "FOUND";
+          $("objectiveTitle").textContent = "REACH THE EXIT";
+          $("objectiveCopy").textContent = "Your party has the key. Find the marked exit chamber.";
+          $("keyStep").classList.add("done");
+        }
+        updateHud();
+      }
+
+      function applyNetworkWorldEvent(message) {
+        if (message.eventType === "chest") {
+          if (networkWorld.openedChests.has(message.index)) return;
+          networkWorld.openedChests.add(message.index);
+          const chest = chests[message.index];
+          if (!chest) return;
+          chest.opened = true;
+          if (message.hasKey) {
+            networkWorld.hasKey = true;
+            player.hasKey = true;
+            $("keyStatus").textContent = "FOUND";
+            $("objectiveTitle").textContent = "REACH THE EXIT";
+            $("objectiveCopy").textContent = "Your party has the key. Find the marked exit chamber.";
+            $("keyStep").classList.add("done");
+            showToast(message.actorId === networkPlayerId ? "YOUR PARTY FOUND THE EXIT KEY" : "YOUR PARTY FOUND THE EXIT KEY");
+          } else if (message.actorId === networkPlayerId && message.reward > 0) {
+            player.coins += message.reward;
+            showToast(`CHEST OPENED  +${message.reward} COINS`);
+          } else if (chest.kind === "decoy") {
+            showToast("YOUR PARTY FOUND AN EMPTY CHEST");
+          } else {
+            showToast("A TEAMMATE FOUND COINS");
+          }
+          updateHud();
+          return;
+        }
+        if (message.eventType === "drawer" && !networkWorld.searchedDrawers.has(message.index)) {
+          networkWorld.searchedDrawers.add(message.index);
+          const drawer = drawers[message.index];
+          if (!drawer) return;
+          drawer.searched = true;
+          drawer.battery = false;
+          if (message.actorId === networkPlayerId && player.battery < 100) {
+            const recovered = Math.min(35, 100 - player.battery);
+            player.battery += recovered;
+            updateHud();
+            showToast(`SPARE BATTERY FOUND  +${Math.round(recovered)}%`);
+          } else if (message.actorId === networkPlayerId) {
+            showToast("BATTERY FULL — DRAWER SEARCHED");
+          } else {
+            showToast("A TEAMMATE SEARCHED A DRAWER");
+          }
+        }
+      }
+
+      function handleNetworkMessage(message) {
+        if (message.type === "error") {
+          const text = message.message || "Multiplayer request failed.";
+          $("lobbyNote").textContent = text;
+          $("privateSetupNote").textContent = text;
+          $("confirmPrivateLobby").disabled = false;
+          showToast(text);
+          return;
+        }
+        if (message.type === "lobby_created") {
+          networkActive = true;
+          networkPlayerId = message.id;
+          networkPlayerName = message.name;
+          networkRoomMode = message.mode;
+          pendingLobbyCode = message.code;
+          $("privateLobbyCode").textContent = pendingLobbyCode;
+          $("copyLobbyCode").disabled = false;
+          $("confirmPrivateLobby").disabled = false;
+          setNetworkChatLabel(true);
+          $("privateSetupNote").textContent = `Share ${pendingLobbyCode} with your party, choose your team size, then confirm to start.`;
+          if (selectedPrivateMode !== networkRoomMode) sendNetwork({ type: "configure", mode: selectedPrivateMode });
+          return;
+        }
+        if (message.type === "lobby_configured") {
+          networkRoomMode = message.mode;
+          return;
+        }
+        if (message.type === "joined") {
+          networkActive = true;
+          networkPlayerId = message.id;
+          networkPlayerName = message.name;
+          networkRoomMode = message.mode;
+          pendingLobbyCode = message.code;
+          selectedMode = message.mode;
+          networkPlayers.clear();
+          for (const remote of message.players || []) {
+            if (remote.id !== networkPlayerId) networkPlayers.set(remote.id, remote);
+          }
+          applyRoomWorld(message.world);
+          setNetworkChatLabel(true);
+          if (message.started) {
+            resetGame("private", pendingLobbyCode);
+            applyRoomWorld(message.world);
+          } else {
+            $("privateSetup").classList.add("joining");
+            $("privateSetup").hidden = false;
+            $("lobbyActions").hidden = true;
+            $("mainModeGrid").hidden = true;
+            $("privateLobbyCode").textContent = pendingLobbyCode;
+            $("copyLobbyCode").hidden = true;
+            $("cancelPrivateLobby").textContent = "LEAVE LOBBY";
+            $("privateSetupNote").textContent = `Connected as ${networkPlayerName}. Waiting for the host to confirm and start the game.`;
+            $("confirmPrivateLobby").hidden = true;
+          }
+          return;
+        }
+        if (message.type === "game_started") {
+          selectedMode = message.mode;
+          for (const remote of message.players || []) {
+            if (remote.id !== networkPlayerId) networkPlayers.set(remote.id, remote);
+          }
+          resetGame("private", pendingLobbyCode);
+          applyRoomWorld(message.world);
+          $("privateSetup").classList.remove("joining");
+          $("copyLobbyCode").hidden = false;
+          $("cancelPrivateLobby").textContent = "BACK";
+          $("confirmPrivateLobby").hidden = false;
+          showToast(`PARTY CONNECTED — ${message.mode.toUpperCase()}`);
+          return;
+        }
+        if (message.type === "game_finished" && !finished) {
+          endGame(true, false);
+          return;
+        }
+        if (message.type === "player_joined" || message.type === "player_state") {
+          const remote = message.player;
+          if (remote && remote.id !== networkPlayerId) networkPlayers.set(remote.id, remote);
+          if (message.type === "player_joined" && remote && remote.id !== networkPlayerId) {
+            addChatMessage("", `${remote.name} joined the lobby.`, true);
+            if (!started && networkPlayerId) $("privateSetupNote").textContent = `${remote.name} joined. Share the code with your party, then confirm to start.`;
+          }
+          return;
+        }
+        if (message.type === "player_left") {
+          const remote = networkPlayers.get(message.id);
+          if (remote) addChatMessage("", `${remote.name} left the lobby.`, true);
+          networkPlayers.delete(message.id);
+          return;
+        }
+        if (message.type === "chat" && message.id !== networkPlayerId) {
+          addChatMessage(message.name || "PARTY", message.text || "");
+          return;
+        }
+        if (message.type === "world_event") {
+          applyNetworkWorldEvent(message);
+        }
+      }
+
+      function connectToMultiplayer(message) {
+        if (networkSocket) networkSocket.close();
+        networkActive = false;
+        networkPlayers.clear();
+        setNetworkChatLabel(false);
+        let socket;
+        try {
+          socket = new WebSocket(multiplayerServerUrl);
+        } catch {
+          $("lobbyNote").textContent = "Could not connect to the multiplayer server.";
+          $("privateSetupNote").textContent = "Could not connect to the multiplayer server.";
+          return;
+        }
+        networkSocket = socket;
+        const timeout = setTimeout(() => {
+          if (socket.readyState === WebSocket.CONNECTING) {
+            socket.close();
+            $("lobbyNote").textContent = "The multiplayer server did not respond. Try again in a moment.";
+            $("privateSetupNote").textContent = "The multiplayer server did not respond. Try again in a moment.";
+          }
+        }, 15000);
+        socket.addEventListener("open", () => {
+          clearTimeout(timeout);
+          socket.send(JSON.stringify(message));
+        }, { once: true });
+        socket.addEventListener("message", (event) => {
+          try {
+            handleNetworkMessage(JSON.parse(event.data));
+          } catch {
+            $("lobbyNote").textContent = "Received an invalid response from the multiplayer server.";
+          }
+        });
+        socket.addEventListener("error", () => {
+          clearTimeout(timeout);
+          $("lobbyNote").textContent = "Could not reach the multiplayer server. Please try again.";
+          $("privateSetupNote").textContent = "Could not reach the multiplayer server. Please try again.";
+        });
+        socket.addEventListener("close", () => {
+          clearTimeout(timeout);
+          if (networkSocket !== socket) return;
+          const wasActive = networkActive;
+          networkSocket = null;
+          networkActive = false;
+          networkPlayerId = "";
+          networkPlayers.clear();
+          setNetworkChatLabel(false);
+          if (wasActive && started) showToast("MULTIPLAYER CONNECTION LOST");
+        });
+      }
+
       if (window.matchMedia("(pointer: coarse)").matches) setMapVisible(false);
 
       function addChatMessage(name, message, system = false) {
@@ -1203,7 +1519,7 @@
         if (!audioContext || !chaseGain || !chaseTone || audioContext.state !== "running") return;
         const now = audioContext.currentTime;
         if (active !== lastChaseActive) {
-          chaseGain.gain.setTargetAtTime(active ? .2 : 0, now, active ? .35 : .65);
+          chaseGain.gain.setTargetAtTime(active ? .35 : 0, now, active ? .35 : .65);
           lastChaseActive = active;
         }
         if (active && time - audioPitchAt > .15) {
@@ -1219,6 +1535,7 @@
           chaseTone = audioContext.createOscillator();
           const filter = audioContext.createBiquadFilter();
           chaseGain = audioContext.createGain();
+          masterVolumeGain = audioContext.createGain();
           chaseTone.type = "triangle";
           chaseTone.frequency.value = 38;
           filter.type = "lowpass";
@@ -1226,7 +1543,9 @@
           chaseGain.gain.value = 0;
           chaseTone.connect(filter);
           filter.connect(chaseGain);
-          chaseGain.connect(audioContext.destination);
+          chaseGain.connect(masterVolumeGain);
+          masterVolumeGain.gain.value = gameVolume;
+          masterVolumeGain.connect(audioContext.destination);
           chaseTone.start();
         }
         if (audioContext.state === "suspended") audioContext.resume();
@@ -1249,8 +1568,10 @@
         }
       }
 
-      function endGame(escaped) {
+      function endGame(escaped, announce = true) {
         finished = true; releaseMouseLook();
+        $("pauseToggle").hidden = true;
+        if (escaped && announce && networkActive) sendNetwork({ type: "finish" });
         $("endScreen").classList.remove("off");
         $("endScreen").classList.toggle("ending", true);
         $("endKicker").textContent = escaped ? "EXPEDITION COMPLETE" : "EXPEDITION FAILED";
@@ -1266,14 +1587,19 @@
         for (const row of explored) row.fill(false);
         Object.assign(player, { x: playerStart.x, y: playerStart.y, angle: 0, lives: 3, coins: 0, hasKey: false, hidden: false, running: false, moving: false, battery: 100, flashlightOn: true, stride: 0, turnMotion: 0, pitch: 0 });
         Object.assign(monster, { x: 21.5, y: 5.5, angle: Math.PI, state: "patrol", lastHeard: 0, pathAt: 0, patrolIndex: 0, path: [] });
-        time = 0; finished = false; paused = false; started = true; walkClock = 0; activeCheckpoint = checkpoints[0];
+        time = 0; finished = false; paused = false; started = true; walkClock = 0; networkSyncClock = 0; activeCheckpoint = checkpoints[0];
         $("startScreen").classList.add("off"); $("endScreen").classList.add("off"); $("pauseLabel").classList.remove("show");
+        $("pauseLabel").setAttribute("aria-hidden", "true");
         $("hiddenNote").classList.remove("show"); $("exitCabinet").hidden = true; $("game").classList.remove("is-hidden");
         $("objectiveTitle").textContent = "FIND THE EXIT KEY";
         $("objectiveCopy").textContent = "Search the chests for the key and drawers for batteries. Something is listening.";
         $("keyStep").classList.remove("done"); $("exitStep").classList.remove("done");
         $("cameraToggle").textContent = `CAMERA: ${thirdPerson ? "THIRD" : "FIRST"} PERSON`;
         $("game").classList.toggle("third-person", thirdPerson);
+        $("pauseToggle").hidden = false;
+        $("privateSetup").hidden = true;
+        $("lobbyActions").hidden = false;
+        $("mainModeGrid").hidden = false;
         updateHud(); startChaseAudio(); requestMouseLook();
         if (lobbyType !== "solo") {
           const label = lobbyType === "private" ? `PRIVATE LOBBY ${lobbyCode}` : "PUBLIC MATCHMAKING";
@@ -1312,6 +1638,13 @@
           updateThreat();
           updatePrompt();
           updateRegion();
+          if (networkActive) {
+            networkSyncClock += dt;
+            if (networkSyncClock >= .1) {
+              networkSyncClock = 0;
+              sendNetwork({ type: "move", x: player.x, y: player.y, angle: player.angle, hidden: player.hidden });
+            }
+          }
         }
         renderWorld();
         requestAnimationFrame(frame);
@@ -1320,6 +1653,64 @@
 
       $("startButton").addEventListener("click", () => resetGame(selectedMode));
       $("restartButton").addEventListener("click", () => resetGame(selectedMode));
+      document.querySelectorAll("[data-toggle-card]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const content = $(button.dataset.toggleCard);
+          const expanded = button.getAttribute("aria-expanded") !== "false";
+          content.hidden = expanded;
+          button.setAttribute("aria-expanded", String(!expanded));
+          button.textContent = expanded ? "SHOW" : "HIDE";
+          button.closest(".panel").classList.toggle("collapsed", expanded);
+        });
+      });
+      function setPaused(value) {
+        if (!started || finished) return;
+        paused = value;
+        $("pauseLabel").classList.toggle("show", paused);
+        $("pauseLabel").setAttribute("aria-hidden", String(!paused));
+        if (paused) {
+          keys = Object.create(null);
+          touchMoveX = 0;
+          touchMoveY = 0;
+          releaseMouseLook();
+        } else {
+          requestMouseLook();
+        }
+      }
+      $("pauseToggle").addEventListener("click", () => setPaused(!paused));
+      $("resumeButton").addEventListener("click", () => setPaused(false));
+      $("leaveButton").addEventListener("click", () => {
+        setPaused(false);
+        started = false;
+        finished = false;
+        keys = Object.create(null);
+        $("pauseToggle").hidden = true;
+        if (networkSocket) {
+          const socket = networkSocket;
+          networkSocket = null;
+          networkActive = false;
+          socket.close();
+        }
+        networkPlayerId = "";
+        networkPlayers.clear();
+        $("endScreen").classList.add("off");
+        $("startScreen").classList.remove("off");
+        $("lobbyNote").textContent = "You left the expedition. Choose a team or create a private lobby.";
+      });
+      $("volumeSetting").addEventListener("input", (event) => {
+        gameVolume = Number(event.target.value) / 100;
+        $("volumeValue").value = `${event.target.value}%`;
+        if (masterVolumeGain && audioContext) masterVolumeGain.gain.setTargetAtTime(gameVolume, audioContext.currentTime, .04);
+      });
+      $("sensitivitySetting").addEventListener("input", (event) => {
+        lookSensitivity = Number(event.target.value) / 100;
+        $("sensitivityValue").value = `${event.target.value}%`;
+      });
+      $("brightnessSetting").addEventListener("input", (event) => {
+        gameBrightness = Number(event.target.value) / 100;
+        $("brightnessValue").value = `${event.target.value}%`;
+        canvas.style.filter = `brightness(${gameBrightness})`;
+      });
       document.querySelectorAll(".mode-button").forEach((button) => {
         button.addEventListener("click", () => {
           selectedMode = button.dataset.mode;
@@ -1332,21 +1723,27 @@
       });
       $("randomButton").addEventListener("click", () => resetGame("public"));
       $("createLobbyButton").addEventListener("click", () => {
-        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        pendingLobbyCode = Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
         selectedPrivateMode = ["solo", "duo", "squad"].includes(selectedMode) ? selectedMode : "solo";
-        $("privateLobbyCode").textContent = pendingLobbyCode;
+        pendingLobbyCode = "";
+        $("privateLobbyCode").textContent = "CONNECTING";
         $("privateSetup").hidden = false;
+        $("privateSetup").classList.remove("joining");
         $("lobbyActions").hidden = true;
         $("mainModeGrid").hidden = true;
         $("lobbyCodeRow").hidden = true;
+        $("copyLobbyCode").hidden = false;
+        $("copyLobbyCode").disabled = true;
+        $("cancelPrivateLobby").textContent = "BACK";
+        $("confirmPrivateLobby").hidden = false;
+        $("confirmPrivateLobby").disabled = true;
         document.querySelectorAll(".private-mode").forEach((button) => {
           const selected = button.dataset.privateMode === selectedPrivateMode;
           button.classList.toggle("selected", selected);
           button.setAttribute("aria-pressed", String(selected));
         });
-        $("privateSetupNote").textContent = "Choose your team, share the code, then confirm to start. This preview displays codes locally; joining players requires a multiplayer server.";
-        $("lobbyNote").textContent = "Private lobby setup: select your team and share the code before starting.";
+        $("privateSetupNote").textContent = "Connecting to the multiplayer server to create your private lobby...";
+        $("lobbyNote").textContent = "Creating a private online lobby...";
+        connectToMultiplayer({ type: "create", mode: selectedPrivateMode });
       });
       document.querySelectorAll(".private-mode").forEach((button) => {
         button.addEventListener("click", () => {
@@ -1356,6 +1753,10 @@
             option.classList.toggle("selected", selected);
             option.setAttribute("aria-pressed", String(selected));
           });
+          if (networkActive && networkPlayerId) {
+            sendNetwork({ type: "configure", mode: selectedPrivateMode });
+            $("privateSetupNote").textContent = "Updating lobby capacity...";
+          }
         });
       });
       $("copyLobbyCode").addEventListener("click", async () => {
@@ -1367,18 +1768,36 @@
         }
       });
       $("cancelPrivateLobby").addEventListener("click", () => {
+        if (networkSocket) {
+          const socket = networkSocket;
+          networkSocket = null;
+          networkActive = false;
+          socket.close();
+        }
+        pendingLobbyCode = "";
+        networkPlayerId = "";
+        networkPlayers.clear();
+        $("privateSetup").classList.remove("joining");
         $("privateSetup").hidden = true;
+        $("copyLobbyCode").hidden = false;
+        $("confirmPrivateLobby").hidden = false;
+        $("confirmPrivateLobby").disabled = false;
         $("lobbyActions").hidden = false;
         $("mainModeGrid").hidden = false;
         $("lobbyNote").textContent = "Private lobby setup cancelled.";
       });
       $("confirmPrivateLobby").addEventListener("click", () => {
-        if (!pendingLobbyCode) {
-          $("privateSetupNote").textContent = "Create a new lobby code before starting.";
+        if (!networkActive || !pendingLobbyCode) {
+          $("privateSetupNote").textContent = "Wait for a successful multiplayer server connection before starting.";
           return;
         }
         selectedMode = selectedPrivateMode;
-        resetGame("private", pendingLobbyCode);
+        $("confirmPrivateLobby").disabled = true;
+        $("privateSetupNote").textContent = `Starting the ${selectedPrivateMode.toUpperCase()} lobby...`;
+        if (!sendNetwork({ type: "start" })) {
+          $("confirmPrivateLobby").disabled = false;
+          $("privateSetupNote").textContent = "The server connection was lost. Reconnect before starting.";
+        }
       });
       $("joinLobbyButton").addEventListener("click", () => {
         $("lobbyCodeRow").hidden = false;
@@ -1391,7 +1810,18 @@
           $("lobbyCode").focus();
           return;
         }
-        $("lobbyNote").textContent = "Lobby codes cannot be verified in this standalone preview because no multiplayer server is connected.";
+        $("privateSetup").classList.add("joining");
+        $("privateSetup").hidden = false;
+        $("lobbyActions").hidden = true;
+        $("mainModeGrid").hidden = true;
+        $("lobbyCodeRow").hidden = true;
+        $("privateLobbyCode").textContent = code;
+        $("copyLobbyCode").hidden = true;
+        $("cancelPrivateLobby").textContent = "CANCEL";
+        $("confirmPrivateLobby").hidden = true;
+        $("privateSetupNote").textContent = "Connecting to the private lobby...";
+        $("lobbyNote").textContent = "Joining private lobby...";
+        connectToMultiplayer({ type: "join", code });
       });
       $("chatInput").addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
@@ -1476,9 +1906,9 @@
       canvas.addEventListener("pointermove", (event) => {
         if (event.pointerId !== touchLookPointer || paused || finished) return;
         const dx = event.clientX - touchLookX, dy = event.clientY - touchLookY;
-        player.angle += dx * .006;
-        player.turnMotion = clamp(player.turnMotion + dx * .003, -1, 1);
-        player.pitch = clamp(player.pitch + dy * .004, -.5, .5);
+        player.angle += dx * .006 * lookSensitivity;
+        player.turnMotion = clamp(player.turnMotion + dx * .003 * lookSensitivity, -1, 1);
+        player.pitch = clamp(player.pitch + dy * .004 * lookSensitivity, -.5, .5);
         touchLookX = event.clientX;
         touchLookY = event.clientY;
       });
@@ -1503,6 +1933,7 @@
         const message = input.value.trim();
         if (!message) return;
         addChatMessage("YOU", message);
+        if (networkActive) sendNetwork({ type: "chat", text: message });
         input.value = "";
         input.focus();
       });
@@ -1518,18 +1949,16 @@
         if (event.code === "KeyF" && !event.repeat && started && !paused && !finished) toggleFlashlight();
         if (event.code === "KeyE" && started && !paused && !finished && time - lastInteraction > .22) { lastInteraction = time; interact(); }
         if (event.code === "Escape" && started && !finished) {
-          paused = !paused; $("pauseLabel").classList.toggle("show", paused);
-          if (paused) releaseMouseLook();
-          else requestMouseLook();
+          setPaused(!paused);
         }
         if ((event.code === "Enter" || event.code === "Space") && finished) resetGame();
       });
       window.addEventListener("keyup", (event) => { keys[event.code] = false; });
       document.addEventListener("mousemove", (event) => {
         if (document.pointerLockElement === canvas && started && !paused) {
-          player.angle += event.movementX * .0022;
-          player.turnMotion = clamp(player.turnMotion + event.movementX * .0008, -1, 1);
-          player.pitch = clamp(player.pitch + event.movementY * .0018, -.5, .5);
+          player.angle += event.movementX * .0022 * lookSensitivity;
+          player.turnMotion = clamp(player.turnMotion + event.movementX * .0008 * lookSensitivity, -1, 1);
+          player.pitch = clamp(player.pitch + event.movementY * .0018 * lookSensitivity, -.5, .5);
         }
       });
       canvas.addEventListener("click", () => {
@@ -1542,7 +1971,7 @@
         }
         if (mouseLookActive && started && !finished && !paused) {
           mouseLookActive = false;
-          paused = true; $("pauseLabel").classList.add("show");
+          setPaused(true);
         }
       });
     })();
